@@ -1,0 +1,38 @@
+# Secrets / local config (contains plaintext API key — never commit)
+.claude/settings.local.json
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+.next/
+dist/
+build/
+out/
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Scratch working dirs (keep tracked, but ignore temp artifacts)
+.scratch/**/.tmp/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Prisma
+packages/db/generated/
+*.db
+*.db-journal
+
+# Test / coverage
+coverage/
+
+# Logs
+*.log
+npm-debug.log*

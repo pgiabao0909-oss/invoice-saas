@@ -1,0 +1,25 @@
+{
+  "name": "@invoice-saas/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/worker.ts"
+  },
+  "scripts": {
+    "dev": "tsx watch src/worker.ts",
+    "start": "node dist/worker.js",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.json",
+    "test": "echo \"no worker tests yet\""
+  },
+  "dependencies": {
+    "@invoice-saas/db": "*",
+    "@prisma/client": "^5.20.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "@types/node": "^22.7.0",
+    "tsx": "^4.19.0"
+  }
+}

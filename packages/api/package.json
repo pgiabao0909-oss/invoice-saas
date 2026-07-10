@@ -1,0 +1,29 @@
+{
+  "name": "@invoice-saas/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/server.ts"
+  },
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.json",
+    "test": "echo \"no api tests yet\""
+  },
+  "dependencies": {
+    "@invoice-saas/contracts": "*",
+    "@invoice-saas/db": "*",
+    "@prisma/client": "^5.20.0",
+    "@fastify/type-provider-zod": "^1.0.0",
+    "fastify": "^5.5.0",
+    "zod": "^4.2.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "@types/node": "^22.7.0",
+    "tsx": "^4.19.0"
+  }
+}

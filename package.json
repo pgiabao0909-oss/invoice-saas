@@ -1,0 +1,25 @@
+{
+  "name": "invoice-saas",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "prisma:generate": "npm run generate -w @invoice-saas/db",
+    "prisma:validate": "npm run validate -w @invoice-saas/db",
+    "dev:api": "npm run dev -w @invoice-saas/api",
+    "dev:worker": "npm run dev -w @invoice-saas/worker"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "@types/node": "^22.7.0"
+  }
+}
