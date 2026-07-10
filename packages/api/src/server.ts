@@ -4,6 +4,9 @@ import { serializerCompiler, validatorCompiler, ZodTypeProvider } from '@fastify
 import { createPaymentProvider, prisma } from '@invoice-saas/db';
 import { healthRoutes } from './routes/health.js';
 import { invoiceRoutes } from './routes/invoices.js';
+import { clientRoutes } from './routes/clients.js';
+import { tenantRoutes } from './routes/tenants.js';
+import { meRoutes } from './routes/me.js';
 import { stripeWebhookRoutes } from './routes/webhooks.js';
 import { adminRoutes } from './routes/admin.js';
 import './types.js';
@@ -19,6 +22,11 @@ export async function buildServer(): Promise<FastifyInstance> {
 
   await app.register(healthRoutes);
   await app.register(invoiceRoutes);
+  // UI build — read/write endpoints the web app consumes (via Next.js same-origin
+  // rewrite; no CORS needed). clients/me are tenant-scoped; tenants is not (onboarding).
+  await app.register(clientRoutes);
+  await app.register(meRoutes);
+  await app.register(tenantRoutes);
   // T3 — Stripe webhook. No resolveTenant; tenant comes from event metadata.
   await app.register(stripeWebhookRoutes({ prisma, provider: createPaymentProvider() }), {
     prefix: '/webhooks',
