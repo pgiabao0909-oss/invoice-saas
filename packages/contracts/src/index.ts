@@ -298,5 +298,106 @@ export const InvoiceListQuerySchema = z.object({
 });
 export type InvoiceListQuery = z.infer<typeof InvoiceListQuerySchema>;
 
+// ---------------------------------------------------------------------------
+// Automation — self-verification gate (guide §2.4)
+// ---------------------------------------------------------------------------
+
+/**
+ * A single reason an invoice failed verification. `code` is a stable machine token
+ * (safe to branch on); `message` is human-readable for the audit log / API response.
+ */
+export const VerificationIssueSchema = z.object({
+  code: z.string(),
+  message: z.string(),
+});
+export type VerificationIssue = z.infer<typeof VerificationIssueSchema>;
+
+/** Result of running the pre-send verification gate over an invoice. */
+export const VerificationResultSchema = z.object({
+  ok: z.boolean(),
+  issues: z.array(VerificationIssueSchema),
+});
+export type VerificationResult = z.infer<typeof VerificationResultSchema>;
+
+// ---------------------------------------------------------------------------
+// Automation — ingestion trigger (guide §2.1 "a very basic API endpoint")
+// ---------------------------------------------------------------------------
+
+/**
+ * The client on an ingested unit of work. Resolved by email within the tenant:
+ * an existing client with this email is reused, otherwise one is created. This is
+ * what lets an upstream system (CRM, store, webhook) push work with no prior setup.
+ */
+export const IngestClientSchema = z.object({
+  email: z.email(),
+  legalName: z.string().min(1).max(200).optional(),
+  billingAddress: z.string().max(500).optional(),
+  taxIdentifier: z.string().max(64).optional(),
+});
+export type IngestClient = z.infer<typeof IngestClientSchema>;
+
+/**
+ * One unit of billable work pushed to `POST /ingest`. The system turns this into a
+ * draft invoice, verifies it, and (unless `autoSend` is false) sends it — no clicks.
+ */
+export const IngestSchema = z.object({
+  client: IngestClientSchema,
+  /** Defaults to the tenant's base currency when omitted. */
+  currency: CurrencyCodeSchema.optional(),
+  /** Explicit due date (ISO). Takes precedence over `dueInDays`. */
+  dueDate: z.iso.datetime({ offset: true }).optional(),
+  /** Net terms: days from now until due. Defaults to 14. Ignored if `dueDate` set. */
+  dueInDays: z.number().int().positive().max(3650).optional(),
+  lineItems: z.array(LineItemSchema).min(1),
+  discount: DiscountSchema.optional(),
+  /** When true (default) a verified invoice is sent immediately. */
+  autoSend: z.boolean().optional(),
+});
+export type Ingest = z.infer<typeof IngestSchema>;
+
+/** Outcome of an ingestion: the invoice, its verification result, and whether it went out. */
+export const IngestResultSchema = z.object({
+  invoice: InvoiceSchema,
+  clientId: ClientIdSchema,
+  verification: VerificationResultSchema,
+  /** True when the invoice was auto-sent; false when held (verification failed or autoSend=false). */
+  autoSent: z.boolean(),
+});
+export type IngestResult = z.infer<typeof IngestResultSchema>;
+
+// ---------------------------------------------------------------------------
+// Automation — immutable audit trail (guide §2.5)
+// ---------------------------------------------------------------------------
+
+/** Canonical audit events. Append-only; the trail is never mutated or deleted. */
+export const AUDIT_EVENTS = {
+  INVOICE_CREATED: 'invoice.created',
+  INVOICE_VERIFIED: 'invoice.verified',
+  INVOICE_VERIFICATION_FAILED: 'invoice.verification_failed',
+  INVOICE_SENT: 'invoice.sent',
+  INVOICE_HELD: 'invoice.held',
+  REMINDER_SENT: 'invoice.reminder_sent',
+  INVOICE_OVERDUE: 'invoice.overdue',
+  PAYMENT_RECORDED: 'invoice.paid',
+} as const;
+export type AuditEvent = (typeof AUDIT_EVENTS)[keyof typeof AUDIT_EVENTS];
+
+export const AuditLogEntrySchema = z.object({
+  id: z.cuid(),
+  tenantId: TenantIdSchema,
+  invoiceId: InvoiceIdSchema.optional(),
+  event: z.string(),
+  detail: z.record(z.string(), z.any()).optional(),
+  createdAt: z.iso.datetime(),
+});
+export type AuditLogEntry = z.infer<typeof AuditLogEntrySchema>;
+
+/** Query params for GET /audit. */
+export const AuditListQuerySchema = z.object({
+  invoiceId: InvoiceIdSchema.optional(),
+  limit: z.coerce.number().int().positive().max(500).optional(),
+});
+export type AuditListQuery = z.infer<typeof AuditListQuerySchema>;
+
 // Re-export zod for convenience in consumers.
 export { z };

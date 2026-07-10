@@ -35,6 +35,7 @@ function fakePrisma(status: string) {
     currency: 'USD',
     dueDate: new Date('2026-01-15T00:00:00Z'),
   };
+  let auditEvents: string[] = [];
   const prisma: any = {
     invoice: {
       findFirst: async (args: { where: { id: string; tenantId?: string } }) => {
@@ -43,8 +44,9 @@ function fakePrisma(status: string) {
       },
     },
     client: { findUnique: async () => ({ id: 'c1', email: 'client@example.com' }) },
+    auditLog: { create: async (a: { data: { event: string } }) => { auditEvents.push(a.data.event); return {}; } },
   };
-  return { prisma, invoice };
+  return { prisma, invoice, auditEvents };
 }
 
 const reminderJob = {
@@ -54,8 +56,8 @@ const reminderJob = {
 } as any;
 
 describe('handleReminder — T4 overdue reminder', () => {
-  it('sends a reminder email to the client for an overdue invoice', async () => {
-    const { prisma } = fakePrisma('overdue');
+  it('sends a reminder email to the client for an overdue invoice and audits it', async () => {
+    const { prisma, auditEvents } = fakePrisma('overdue');
     const email = new CapturingEmailSender();
 
     await handleReminder({ prisma, email }, reminderJob);
@@ -64,23 +66,26 @@ describe('handleReminder — T4 overdue reminder', () => {
     expect(email.sent[0]!.to).toBe('client@example.com');
     expect(email.sent[0]!.subject).toContain('Overdue');
     expect(email.sent[0]!.body).toContain('INV-1');
+    expect(auditEvents).toContain('invoice.reminder_sent');
   });
 
   it('skips the reminder when the invoice is already paid (stale job)', async () => {
-    const { prisma } = fakePrisma('paid');
+    const { prisma, auditEvents } = fakePrisma('paid');
     const email = new CapturingEmailSender();
 
     await handleReminder({ prisma, email }, reminderJob);
 
     expect(email.sent).toHaveLength(0);
+    expect(auditEvents).toHaveLength(0);
   });
 
   it('skips the reminder when the invoice is void (stale job)', async () => {
-    const { prisma } = fakePrisma('void');
+    const { prisma, auditEvents } = fakePrisma('void');
     const email = new CapturingEmailSender();
 
     await handleReminder({ prisma, email }, reminderJob);
 
     expect(email.sent).toHaveLength(0);
+    expect(auditEvents).toHaveLength(0);
   });
 });

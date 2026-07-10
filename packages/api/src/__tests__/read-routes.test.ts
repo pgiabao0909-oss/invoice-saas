@@ -75,6 +75,18 @@ vi.mock('@invoice-saas/db', () => {
     getTenant: async () => tenant,
     getStats: async () => stats,
     updateBranding: async () => ({ ...tenant, branding: { displayName: 'Renamed' } }),
+    // Automation surfaces added in the automation build.
+    ingestWork: async () => ({
+      invoice,
+      clientId: CUID_C,
+      verification: { ok: true, issues: [] },
+      autoSent: true,
+    }),
+    listAudit: async () => [],
+    recordAudit: async () => {},
+    recordPayment: async () => invoice,
+    sweepAllTenants: async () => ({ flipped: 0, remindersEnqueued: 0, flippedIds: [] }),
+    AUDIT_EVENTS: { INVOICE_CREATED: 'invoice.created' },
   };
 });
 

@@ -1,5 +1,16 @@
 import { fileURLToPath } from 'node:url';
-import { claimNextJob, completeJob, createPaymentProvider, ensurePaymentLink, failJob, prisma, type PaymentProvider } from '@invoice-saas/db';
+import {
+  claimNextJob,
+  completeJob,
+  createPaymentProvider,
+  ensurePaymentLink,
+  failJob,
+  prisma,
+  recordAudit,
+  sweepAllTenants,
+  AUDIT_EVENTS,
+  type PaymentProvider,
+} from '@invoice-saas/db';
 import type { ClaimedJob } from '@invoice-saas/db';
 import { createEmailSender, type EmailSender } from './email.js';
 import { renderInvoicePdf, type TenantBranding } from './pdf.js';
@@ -101,6 +112,12 @@ export async function handleReminder(
     subject: `Overdue invoice ${invoice.invoiceNumber}`,
     body: `Invoice ${invoice.invoiceNumber} is overdue. Please pay at your earliest convenience.`,
   });
+  // Append to the immutable trail that this dunning email actually went out.
+  await recordAudit(deps.prisma, {
+    tenantId,
+    invoiceId,
+    event: AUDIT_EVENTS.REMINDER_SENT,
+  });
 }
 
 async function handleJob(job: ClaimedJob): Promise<void> {
@@ -137,14 +154,44 @@ async function loop(): Promise<void> {
       await completeJob(prisma, job.id);
     } catch (err) {
       console.error('[worker] job failed', job.id, err);
-      await failJob(prisma, job.id);
+      // Durable retry: requeue with exponential backoff, or park as FAILED once
+      // attempts are exhausted (guide §3.2). `attempts` on the claimed job is the
+      // post-claim count, so the first failure waits the base delay.
+      await failJob(prisma, job, { error: err });
     }
   }
+}
+
+const OVERDUE_SWEEP_MS = Number(process.env.OVERDUE_SWEEP_MS ?? 60_000);
+
+/**
+ * Hands-off dunning (guide §4.3): runs the overdue sweep on a timer so invoices are
+ * flipped + reminders are queued automatically — no manual button, no cron entry
+ * required. The sweep is internally idempotent, so running it every minute only acts
+ * on invoices that newly crossed their due date. Returns the interval handle.
+ */
+export function startOverdueScheduler(
+  db: typeof prisma = prisma,
+  intervalMs: number = OVERDUE_SWEEP_MS,
+): ReturnType<typeof setInterval> {
+  const tick = async (): Promise<void> => {
+    try {
+      const r = await sweepAllTenants(db);
+      if (r.flipped > 0 || r.remindersEnqueued > 0) {
+        console.log(`[worker] overdue sweep flipped=${r.flipped} reminders=${r.remindersEnqueued}`);
+      }
+    } catch (err) {
+      console.error('[worker] overdue sweep failed', err);
+    }
+  };
+  void tick();
+  return setInterval(tick, intervalMs);
 }
 
 const isMain =
   process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1];
 if (isMain) {
+  startOverdueScheduler();
   loop().catch((err) => {
     console.error(err);
     process.exit(1);

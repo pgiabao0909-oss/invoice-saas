@@ -118,7 +118,9 @@ function makeFakePrisma(initial: InvoiceRow[] = []) {
       },
     },
     taxRate: { findMany: async () => [] },
+    client: { findUnique: async () => ({ id: 'c1', email: 'billing@acme.test' }) },
     outboxMessage: { create: async () => ({}) },
+    auditLog: { create: async () => ({}) },
     job: { create: async () => ({}) },
     payment: {
       findFirst: async (args: { where: { tenantId: string; idempotencyKey: string } }) => {

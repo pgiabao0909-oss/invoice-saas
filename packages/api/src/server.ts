@@ -7,6 +7,8 @@ import { invoiceRoutes } from './routes/invoices.js';
 import { clientRoutes } from './routes/clients.js';
 import { tenantRoutes } from './routes/tenants.js';
 import { meRoutes } from './routes/me.js';
+import { ingestRoutes } from './routes/ingest.js';
+import { auditRoutes } from './routes/audit.js';
 import { stripeWebhookRoutes } from './routes/webhooks.js';
 import { adminRoutes } from './routes/admin.js';
 import './types.js';
@@ -27,6 +29,11 @@ export async function buildServer(): Promise<FastifyInstance> {
   await app.register(clientRoutes);
   await app.register(meRoutes);
   await app.register(tenantRoutes);
+  // UI build — automation trigger: an upstream system pushes work and the system
+  // drafts → verifies → auto-sends it (guide §2.1). Tenant-scoped.
+  await app.register(ingestRoutes);
+  // UI build — immutable audit trail reader (guide §2.5). Tenant-scoped.
+  await app.register(auditRoutes);
   // T3 — Stripe webhook. No resolveTenant; tenant comes from event metadata.
   await app.register(stripeWebhookRoutes({ prisma, provider: createPaymentProvider() }), {
     prefix: '/webhooks',

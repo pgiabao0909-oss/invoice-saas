@@ -86,6 +86,7 @@ function makeFakePrisma() {
   const prisma: any = {
     $transaction: async (fn: (tx: ReturnType<typeof models>) => Promise<unknown>) => fn(models()),
     ...models(),
+    auditLog: { create: async () => ({}) },
   };
   return { prisma, invoice, payments };
 }

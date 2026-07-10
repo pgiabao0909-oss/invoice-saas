@@ -77,6 +77,7 @@ function makeFakePrisma() {
           jobs.push(a.data);
           return {};
         } },
+        auditLog: { create: async () => ({}) },
       }),
     invoice: invoiceModels(),
     job: { create: async (a: { data: { type: string; payload: Record<string, unknown> } }) => {

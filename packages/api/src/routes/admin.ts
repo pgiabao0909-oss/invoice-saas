@@ -2,12 +2,12 @@ import type { FastifyInstance } from 'fastify';
 import type { PrismaClient } from '@prisma/client';
 import { ZodTypeProvider } from '@fastify/type-provider-zod';
 import { OverdueCheckResultSchema } from '@invoice-saas/contracts';
-import { detectOverdue } from '@invoice-saas/db';
+import { sweepAllTenants } from '@invoice-saas/db';
 import { requireAdminToken } from '../plugins/admin-auth.js';
 
 /**
  * T4 — manual trigger for the overdue sweep. The production path is the durable
- * scheduler (packages/worker/src/overdue-check.ts, run by cron); this route exists
+ * scheduler (packages/worker/src/overdue-check.ts, run on a timer); this route exists
  * for ops/debug and end-to-end testing.
  *
  * SECURITY: protected by `requireAdminToken` — a request must carry
@@ -31,18 +31,8 @@ export function adminRoutes(deps: AdminDeps) {
         },
       },
       async (_request, reply) => {
-        // Sweep every tenant; per-tenant calls keep a failure on one tenant from
-        // aborting the others, and each call is internally idempotent.
-        const tenants = await deps.prisma.tenant.findMany({ select: { id: true } });
-        const asOf = new Date();
-        let flipped = 0;
-        let remindersEnqueued = 0;
-        for (const t of tenants) {
-          const r = await detectOverdue(deps.prisma, t.id, asOf);
-          flipped += r.flipped;
-          remindersEnqueued += r.remindersEnqueued;
-        }
-        return reply.code(200).send({ flipped, remindersEnqueued });
+        const result = await sweepAllTenants(deps.prisma, new Date());
+        return reply.code(200).send({ flipped: result.flipped, remindersEnqueued: result.remindersEnqueued });
       },
     );
   };

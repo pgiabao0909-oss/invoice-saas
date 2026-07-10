@@ -154,8 +154,28 @@ model Job {
   payload     Json
   status      JobStatus @default(PENDING)
   attempts    Int       @default(0)
+  /// Retry ceiling: after this many attempts a failing job is parked as FAILED.
+  maxAttempts Int       @default(5)
+  /// Last failure message, for observability of retried/failed jobs (guide §3.2).
+  lastError   String?
   availableAt DateTime  @default(now())
   createdAt   DateTime  @default(now())
 
   @@index([status, availableAt])
+}
+
+/// Immutable, append-only audit trail (guide §2.5). The app never updates or
+/// deletes rows here — every state change appends one record, giving a tamper-
+/// evident history you can trust without lifting a finger. Not tied to Invoice by
+/// FK so a record survives even if an invoice is later removed.
+model AuditLog {
+  id        String   @id @default(cuid())
+  tenantId  String
+  invoiceId String?
+  event     String
+  detail    Json?
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, invoiceId])
 }

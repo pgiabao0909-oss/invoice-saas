@@ -10,12 +10,14 @@ import {
   z,
 } from '@invoice-saas/contracts';
 import {
+  AUDIT_EVENTS,
   clientForTenant,
   createInvoice,
   getInvoiceWithClient,
   listInvoices,
   markSent,
   prisma,
+  recordAudit,
 } from '@invoice-saas/db';
 import { resolveTenant } from '../plugins/tenant.js';
 
@@ -36,6 +38,12 @@ export async function invoiceRoutes(app: FastifyInstance): Promise<void> {
       const tenant = request.tenant!;
       const db = clientForTenant(tenant);
       const invoice = await createInvoice(db, tenant.id, request.body);
+      await recordAudit(prisma, {
+        tenantId: tenant.id,
+        invoiceId: invoice.id,
+        event: AUDIT_EVENTS.INVOICE_CREATED,
+        detail: { source: 'manual' },
+      });
       return reply.code(201).send(invoice);
     },
   );
