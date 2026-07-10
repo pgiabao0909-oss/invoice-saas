@@ -1,6 +1,8 @@
 import { fileURLToPath } from 'node:url';
 import { claimNextJob, completeJob, failJob, prisma } from '@invoice-saas/db';
 import type { ClaimedJob } from '@invoice-saas/db';
+import { createEmailSender } from './email.js';
+import { renderInvoicePdf, type TenantBranding } from './pdf.js';
 
 /**
  * Worker: consumes the durable job queue OFF the request path (ADR 0001).
@@ -11,13 +13,33 @@ import type { ClaimedJob } from '@invoice-saas/db';
  * actually execute, so a slow email provider can never block an HTTP request.
  */
 const POLL_MS = 1000;
+const email = createEmailSender();
 
 async function handleJob(job: ClaimedJob): Promise<void> {
   switch (job.type) {
-    case 'EMAIL_INVOICE':
-      // TODO(T2): render PDF + send via transactional email provider.
-      console.log('[worker] EMAIL_INVOICE', JSON.stringify(job.payload));
+    case 'EMAIL_INVOICE': {
+      // T2 — render the branded PDF and email it to the client.
+      const { invoiceId, tenantId } = job.payload as { invoiceId: string; tenantId: string };
+      const invoice = await prisma.invoice.findFirst({ where: { id: invoiceId, tenantId } });
+      if (!invoice) {
+        console.warn('[worker] EMAIL_INVOICE: invoice not found', job.payload);
+        return;
+      }
+      const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
+      const client = await prisma.client.findUnique({ where: { id: invoice.clientId } });
+      const pdf = await renderInvoicePdf(
+        invoice,
+        tenant?.name ?? 'Invoice',
+        (tenant?.branding as TenantBranding) ?? {},
+      );
+      await email.sendInvoice({
+        to: client?.email ?? 'unknown@invalid',
+        subject: `Invoice ${invoice.invoiceNumber}`,
+        body: 'Please find your invoice attached. Thank you!',
+        attachment: { filename: `${invoice.invoiceNumber}.pdf`, content: pdf },
+      });
       break;
+    }
     case 'INVOICE_SENT':
       console.log('[worker] outbox relay INVOICE_SENT', JSON.stringify(job.payload));
       break;

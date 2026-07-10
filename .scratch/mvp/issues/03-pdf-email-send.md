@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: resolved
 Type: task
 Category: enhancement
 Blocked by: 02-create-draft-invoice

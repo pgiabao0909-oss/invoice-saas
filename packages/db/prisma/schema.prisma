@@ -48,6 +48,8 @@ model Tenant {
   dataMode     TenantDataMode @default(POOLED)
   dataLocation String? // for SILOED tenants: dedicated DB/schema
   baseCurrency String         @default("USD")
+  /// Tenant-configurable branding for invoices/emails (T2). Free-form JSON.
+  branding      Json?
   createdAt    DateTime       @default(now())
 
   clients   Client[]

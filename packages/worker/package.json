@@ -11,15 +11,18 @@
     "start": "node dist/worker.js",
     "typecheck": "tsc --noEmit",
     "build": "tsc -p tsconfig.json",
-    "test": "echo \"no worker tests yet\""
+    "test": "vitest run"
   },
   "dependencies": {
     "@invoice-saas/db": "*",
-    "@prisma/client": "^5.20.0"
+    "@prisma/client": "^5.20.0",
+    "pdfkit": "^0.15.0"
   },
   "devDependencies": {
     "typescript": "^5.6.3",
     "@types/node": "^22.7.0",
-    "tsx": "^4.19.0"
+    "@types/pdfkit": "^0.13.0",
+    "tsx": "^4.19.0",
+    "vitest": "^2.1.0"
   }
 }

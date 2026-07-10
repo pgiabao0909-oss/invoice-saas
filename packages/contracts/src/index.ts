@@ -51,6 +51,14 @@ export type InvoiceId = z.infer<typeof InvoiceIdSchema>;
 export const TenantDataModeSchema = z.enum(['POOLED', 'SILOED']);
 export type TenantDataMode = z.infer<typeof TenantDataModeSchema>;
 
+/** Tenant-configurable branding for invoices/emails (T2). */
+export const BrandingSchema = z.object({
+  displayName: z.string().max(200).optional(),
+  logoUrl: z.url().optional(),
+  primaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'hex color e.g. #1a1a1a').optional(),
+});
+export type Branding = z.infer<typeof BrandingSchema>;
+
 export const TenantCreateSchema = z.object({
   name: z.string().min(1).max(200),
   slug: z
@@ -62,6 +70,7 @@ export const TenantCreateSchema = z.object({
   /** For SILOED tenants: the database/schema that holds their data. */
   dataLocation: z.string().max(256).optional(),
   baseCurrency: CurrencyCodeSchema.default('USD'),
+  branding: BrandingSchema.optional(),
 });
 export type TenantCreate = z.infer<typeof TenantCreateSchema>;
 

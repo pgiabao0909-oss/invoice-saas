@@ -16,7 +16,7 @@ is labeled `ready-for-agent` and filed as an individual issue under
 | ------ | ---------- | ------ |
 | T0 | `.scratch/mvp/issues/01-data-model-multitenant.md` | ready-for-agent |
 | T1 | `.scratch/mvp/issues/02-create-draft-invoice.md` | ready-for-agent |
-| T2 | `.scratch/mvp/issues/03-pdf-email-send.md` | ready-for-agent |
+| T2 | `.scratch/mvp/issues/03-pdf-email-send.md` | resolved |
 | T3 | `.scratch/mvp/issues/04-stripe-payment-webhook.md` | ready-for-agent |
 | T4 | `.scratch/mvp/issues/05-overdue-reminders.md` | ready-for-agent |
 
