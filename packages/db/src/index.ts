@@ -3,4 +3,6 @@ export * from './tenancy/registry.js';
 export * from './tenancy/scoped.js';
 export * from './domain/totals.js';
 export * from './domain/invoices.js';
+export * from './domain/payments.js';
+export * from './integrations/stripe.js';
 export * from './jobs/queue.js';

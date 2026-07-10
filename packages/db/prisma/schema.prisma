@@ -102,6 +102,8 @@ model Invoice {
   discountMinor Int
   totalMinor    Int
   amountPaidMinor Int         @default(0)
+  /// Stripe-hosted payment link created at send time (T3). Lets clients pay online.
+  paymentLink  String?
   createdAt     DateTime      @default(now())
 
   tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)

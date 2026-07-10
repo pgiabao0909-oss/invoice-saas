@@ -166,6 +166,8 @@ export const InvoiceSchema = z.object({
   discount: DiscountSchema.optional(),
   totals: InvoiceTotalsSchema,
   amountPaidMinor: MoneySchema,
+  /** Stripe-hosted payment link (T3). Absent until the invoice is sent. */
+  paymentLink: z.string().url().optional(),
   createdAt: z.iso.datetime(),
 });
 export type Invoice = z.infer<typeof InvoiceSchema>;

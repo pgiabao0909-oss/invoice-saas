@@ -13,7 +13,7 @@ import type {
 
 const toJson = (v: unknown): Prisma.InputJsonValue => v as Prisma.InputJsonValue;
 
-function mapInvoice(r: PrismaInvoice): Invoice {
+export function mapInvoice(r: PrismaInvoice): Invoice {
   return {
     id: r.id,
     tenantId: r.tenantId,
@@ -32,6 +32,7 @@ function mapInvoice(r: PrismaInvoice): Invoice {
       totalMinor: r.totalMinor,
     },
     amountPaidMinor: r.amountPaidMinor,
+    paymentLink: r.paymentLink ?? undefined,
     createdAt: r.createdAt.toISOString(),
   };
 }

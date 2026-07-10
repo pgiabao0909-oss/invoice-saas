@@ -1,8 +1,10 @@
 import Fastify from 'fastify';
 import type { FastifyInstance } from 'fastify';
 import { serializerCompiler, validatorCompiler, ZodTypeProvider } from '@fastify/type-provider-zod';
+import { createPaymentProvider, prisma } from '@invoice-saas/db';
 import { healthRoutes } from './routes/health.js';
 import { invoiceRoutes } from './routes/invoices.js';
+import { stripeWebhookRoutes } from './routes/webhooks.js';
 import './types.js';
 
 export async function buildServer(): Promise<FastifyInstance> {
@@ -16,6 +18,10 @@ export async function buildServer(): Promise<FastifyInstance> {
 
   await app.register(healthRoutes);
   await app.register(invoiceRoutes);
+  // T3 — Stripe webhook. No resolveTenant; tenant comes from event metadata.
+  await app.register(stripeWebhookRoutes({ prisma, provider: createPaymentProvider() }), {
+    prefix: '/webhooks',
+  });
 
   return app;
 }
