@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'node:url';
 import { claimNextJob, completeJob, createPaymentProvider, ensurePaymentLink, failJob, prisma, type PaymentProvider } from '@invoice-saas/db';
 import type { ClaimedJob } from '@invoice-saas/db';
-import { createEmailSender } from './email.js';
+import { createEmailSender, type EmailSender } from './email.js';
 import { renderInvoicePdf, type TenantBranding } from './pdf.js';
 
 /**
@@ -69,6 +69,40 @@ export async function handleEmailInvoice(
   });
 }
 
+export interface SendReminderDeps {
+  prisma: typeof prisma;
+  email: EmailSender;
+}
+
+/**
+ * T4 — send an overdue reminder for an INVOICE_REMINDER job. Loads the invoice by
+ * (id, tenantId) from the job payload (never trusts the id alone) and emails the
+ * client. A FRESHNESS GUARD skips the email if the invoice is no longer outstanding
+ * (e.g. it was paid or voided after the reminder job was enqueued), so a stale job
+ * can never nag a customer who already paid.
+ */
+export async function handleReminder(
+  deps: SendReminderDeps,
+  job: ClaimedJob,
+): Promise<void> {
+  const { invoiceId, tenantId } = job.payload as { invoiceId: string; tenantId: string };
+  const invoice = await deps.prisma.invoice.findFirst({ where: { id: invoiceId, tenantId } });
+  if (!invoice) {
+    console.warn('[worker] INVOICE_REMINDER: invoice not found', job.payload);
+    return;
+  }
+  if (invoice.status === 'paid' || invoice.status === 'void') {
+    console.log('[worker] INVOICE_REMINDER: invoice no longer outstanding, skipping', invoiceId, invoice.status);
+    return;
+  }
+  const client = await deps.prisma.client.findUnique({ where: { id: invoice.clientId } });
+  await deps.email.sendInvoice({
+    to: client?.email ?? 'unknown@invalid',
+    subject: `Overdue invoice ${invoice.invoiceNumber}`,
+    body: `Invoice ${invoice.invoiceNumber} is overdue. Please pay at your earliest convenience.`,
+  });
+}
+
 async function handleJob(job: ClaimedJob): Promise<void> {
   switch (job.type) {
     case 'EMAIL_INVOICE': {
@@ -78,9 +112,12 @@ async function handleJob(job: ClaimedJob): Promise<void> {
     case 'INVOICE_SENT':
       console.log('[worker] outbox relay INVOICE_SENT', JSON.stringify(job.payload));
       break;
+    case 'INVOICE_REMINDER':
+      await handleReminder({ prisma, email }, job);
+      break;
     case 'INVOICE_OVERDUE':
-      // TODO(T4): send reminder email.
-      console.log('[worker] INVOICE_OVERDUE', JSON.stringify(job.payload));
+      // Reserved outbox type; reminders are driven by INVOICE_REMINDER jobs (T4).
+      console.log('[worker] INVOICE_OVERDUE (no-op)', JSON.stringify(job.payload));
       break;
     default:
       console.warn('[worker] unknown job type', job.type);

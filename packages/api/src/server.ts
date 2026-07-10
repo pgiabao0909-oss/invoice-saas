@@ -5,6 +5,7 @@ import { createPaymentProvider, prisma } from '@invoice-saas/db';
 import { healthRoutes } from './routes/health.js';
 import { invoiceRoutes } from './routes/invoices.js';
 import { stripeWebhookRoutes } from './routes/webhooks.js';
+import { adminRoutes } from './routes/admin.js';
 import './types.js';
 
 export async function buildServer(): Promise<FastifyInstance> {
@@ -22,6 +23,8 @@ export async function buildServer(): Promise<FastifyInstance> {
   await app.register(stripeWebhookRoutes({ prisma, provider: createPaymentProvider() }), {
     prefix: '/webhooks',
   });
+  // T4 — manual overdue-sweep trigger (NO auth in MVP; see route file).
+  await app.register(adminRoutes({ prisma }), { prefix: '/admin' });
 
   return app;
 }

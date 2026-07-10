@@ -199,5 +199,15 @@ export const ApiErrorSchema = z.object({
 });
 export type ApiError = z.infer<typeof ApiErrorSchema>;
 
+// ---------------------------------------------------------------------------
+// T4 — overdue sweep result (admin trigger / scheduler)
+// ---------------------------------------------------------------------------
+
+export const OverdueCheckResultSchema = z.object({
+  flipped: z.number().int().nonnegative(),
+  remindersEnqueued: z.number().int().nonnegative(),
+});
+export type OverdueCheckResult = z.infer<typeof OverdueCheckResultSchema>;
+
 // Re-export zod for convenience in consumers.
 export { z };
