@@ -1,5 +1,5 @@
 import Fastify from 'fastify';
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, beforeEach } from 'vitest';
 import { serializerCompiler, validatorCompiler, ZodTypeProvider } from '@fastify/type-provider-zod';
 import { adminRoutes } from '../routes/admin.js';
 
@@ -8,6 +8,15 @@ import { adminRoutes } from '../routes/admin.js';
  * with `fastify.inject`, using a fake Prisma (no DB). The fake carries one tenant with
  * one sent, past-due, unpaid invoice, so a single sweep should flip 1 and enqueue 3.
  */
+
+const ADMIN_TOKEN = 'test-admin-secret';
+
+beforeEach(() => {
+  process.env.ADMIN_API_TOKEN = ADMIN_TOKEN;
+});
+afterEach(() => {
+  delete process.env.ADMIN_API_TOKEN;
+});
 function makeFakePrisma() {
   const tenants = [{ id: 't1' }];
   const invoices = new Map<string, any>();
@@ -96,11 +105,15 @@ function buildApp(prisma: unknown): Fastify.FastifyInstance {
 }
 
 describe('POST /admin/run-overdue', () => {
-  it('flips past-due invoices and returns the flipped/reminder counts', async () => {
+  it('flips past-due invoices and returns the flipped/reminder counts when authorized', async () => {
     const { prisma, invoices, jobs } = makeFakePrisma();
     const app = buildApp(prisma);
 
-    const res = await app.inject({ method: 'POST', url: '/admin/run-overdue' });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/admin/run-overdue',
+      headers: { authorization: `Bearer ${ADMIN_TOKEN}` },
+    });
 
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
@@ -109,5 +122,41 @@ describe('POST /admin/run-overdue', () => {
     expect(invoices.get('inv1').status).toBe('overdue');
     expect(jobs).toHaveLength(3);
     expect(jobs.every((j) => j.type === 'INVOICE_REMINDER')).toBe(true);
+  });
+
+  it('rejects a request with no Authorization header (401)', async () => {
+    const { prisma } = makeFakePrisma();
+    const app = buildApp(prisma);
+
+    const res = await app.inject({ method: 'POST', url: '/admin/run-overdue' });
+
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('rejects a request with a wrong token (401)', async () => {
+    const { prisma } = makeFakePrisma();
+    const app = buildApp(prisma);
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/admin/run-overdue',
+      headers: { authorization: 'Bearer not-the-right-token' },
+    });
+
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('rejects every request when ADMIN_API_TOKEN is not configured (401)', async () => {
+    delete process.env.ADMIN_API_TOKEN;
+    const { prisma } = makeFakePrisma();
+    const app = buildApp(prisma);
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/admin/run-overdue',
+      headers: { authorization: `Bearer ${ADMIN_TOKEN}` },
+    });
+
+    expect(res.statusCode).toBe(401);
   });
 });

@@ -3,14 +3,15 @@ import type { PrismaClient } from '@prisma/client';
 import { ZodTypeProvider } from '@fastify/type-provider-zod';
 import { OverdueCheckResultSchema } from '@invoice-saas/contracts';
 import { detectOverdue } from '@invoice-saas/db';
+import { requireAdminToken } from '../plugins/admin-auth.js';
 
 /**
  * T4 — manual trigger for the overdue sweep. The production path is the durable
  * scheduler (packages/worker/src/overdue-check.ts, run by cron); this route exists
  * for ops/debug and end-to-end testing.
  *
- * SECURITY NOTE: there is NO auth on this route in the MVP (documented limitation).
- * Guard it behind an authenticating proxy / network policy before any real deploy.
+ * SECURITY: protected by `requireAdminToken` — a request must carry
+ * `Authorization: Bearer <ADMIN_API_TOKEN>`. Unconfigured or wrong token → 401.
  *
  * The route is a factory so it can be invoked with a fake Prisma under test,
  * defaulting to the real singleton in production.
@@ -24,6 +25,7 @@ export function adminRoutes(deps: AdminDeps) {
     app.withTypeProvider<ZodTypeProvider>().post(
       '/run-overdue',
       {
+        preHandler: requireAdminToken,
         schema: {
           response: { 200: OverdueCheckResultSchema },
         },
