@@ -26,7 +26,7 @@ export function mapInvoice(r: PrismaInvoice): Invoice {
     issueDate: r.issueDate.toISOString(),
     dueDate: r.dueDate.toISOString(),
     lineItems: r.lineItems as unknown as LineItem[],
-    discount: r.discount as Discount | undefined,
+    discount: r.discount ? (r.discount as Discount) : undefined,
     totals: {
       subtotalMinor: r.subtotalMinor,
       taxMinor: r.taxMinor,
