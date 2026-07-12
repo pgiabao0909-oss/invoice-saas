@@ -18,6 +18,7 @@
     "@invoice-saas/db": "*",
     "@prisma/client": "^5.20.0",
     "@fastify/type-provider-zod": "^1.0.0",
+    "dotenv": "^16.4.5",
     "fastify": "^5.5.0",
     "zod": "^4.2.0"
   },

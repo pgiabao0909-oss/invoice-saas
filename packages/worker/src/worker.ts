@@ -1,4 +1,10 @@
 import { fileURLToPath } from 'node:url';
+import { config } from 'dotenv';
+
+// Load env from the repo-root .env. cwd = packages/worker when run via npm, so the
+// repo root is three levels up from this file.
+config({ path: fileURLToPath(new URL('../../../.env', import.meta.url)) });
+
 import {
   claimNextJob,
   completeJob,

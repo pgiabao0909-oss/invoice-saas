@@ -1,3 +1,11 @@
+import { config } from 'dotenv';
+import { fileURLToPath } from 'node:url';
+
+// Load env from the repo-root .env (created via `cp .env.example .env`). npm runs
+// this workspace script with cwd = packages/api, so the repo root is three levels
+// up from this file.
+config({ path: fileURLToPath(new URL('../../../.env', import.meta.url)) });
+
 import Fastify from 'fastify';
 import type { FastifyInstance } from 'fastify';
 import { serializerCompiler, validatorCompiler, ZodTypeProvider } from '@fastify/type-provider-zod';
@@ -45,11 +53,12 @@ export async function buildServer(): Promise<FastifyInstance> {
 }
 
 // Start the server only when this module is the entry point (not under import/test).
-import { fileURLToPath } from 'node:url';
 const isMain = process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1];
 if (isMain) {
   const app = await buildServer();
-  const port = Number(process.env.PORT ?? 3000);
+  // Default to 3001 so the API never clashes with the web app (Next dev on :3000)
+  // and matches the web's same-origin rewrite (/api/* -> http://localhost:3001).
+  const port = Number(process.env.PORT ?? 3001);
   await app.listen({ port, host: '0.0.0.0' });
   // eslint-disable-next-line no-console
   console.log(`api listening on :${port}`);
