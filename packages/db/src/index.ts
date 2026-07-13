@@ -9,6 +9,7 @@ export * from './domain/invoices.js';
 export * from './domain/read.js';
 export * from './domain/payments.js';
 export * from './domain/overdue.js';
+export * from './domain/recurring.js';
 export * from './domain/verify.js';
 export * from './domain/audit.js';
 export * from './domain/ingest.js';

@@ -13,6 +13,8 @@ import {
   failJob,
   prisma,
   recordAudit,
+  reconcilePayments,
+  runDueSubscriptions,
   sweepAllTenants,
   startupAssertLive,
   AUDIT_EVENTS,
@@ -195,6 +197,61 @@ export function startOverdueScheduler(
   return setInterval(tick, intervalMs);
 }
 
+const RECURRING_MS = Number(process.env.RECURRING_MS ?? 60_000);
+const RECONCILE_MS = Number(process.env.RECONCILE_MS ?? 300_000);
+const RECONCILE_LOOKBACK_MS = Number(process.env.RECONCILE_LOOKBACK_MS ?? 24 * 60 * 60 * 1000);
+
+/**
+ * C2 — hands-off recurring billing (guide §C2). Runs `runDueSubscriptions` on a
+ * timer so any subscription whose `anchorDate` has passed is billed automatically —
+ * no manual trigger. Idempotent via the per-run idempotencyKey, so a double tick
+ * cannot create a duplicate invoice.
+ */
+export function startRecurringScheduler(
+  db: typeof prisma = prisma,
+  intervalMs: number = RECURRING_MS,
+): ReturnType<typeof setInterval> {
+  const tick = async (): Promise<void> => {
+    try {
+      const r = await runDueSubscriptions(db);
+      if (r.generated > 0) console.log(`[worker] recurring generated=${r.generated}`);
+    } catch (err) {
+      console.error('[worker] recurring sweep failed', err);
+    }
+  };
+  void tick();
+  return setInterval(tick, intervalMs);
+}
+
+/**
+ * C4 — hands-off payment reconciliation (guide §C4). Periodically replays recently
+ * completed Stripe payments through `recordPayment`, so an invoice is still marked
+ * paid even if Stripe's webhook was missed. In fake-provider mode the provider
+ * returns nothing, so the sweep is a no-op.
+ */
+export function startReconciliationScheduler(
+  provider: PaymentProvider,
+  db: typeof prisma = prisma,
+  intervalMs: number = RECONCILE_MS,
+): ReturnType<typeof setInterval> {
+  const tick = async (): Promise<void> => {
+    try {
+      const r = await reconcilePayments(db, provider, {
+        createdAfter: new Date(Date.now() - RECONCILE_LOOKBACK_MS),
+      });
+      if (r.applied > 0 || r.skipped > 0) {
+        console.log(
+          `[worker] reconcile scanned=${r.scanned} applied=${r.applied} skipped=${r.skipped}`,
+        );
+      }
+    } catch (err) {
+      console.error('[worker] reconciliation failed', err);
+    }
+  };
+  void tick();
+  return setInterval(tick, intervalMs);
+}
+
 const isMain =
   process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1];
 if (isMain) {
@@ -202,6 +259,8 @@ if (isMain) {
   // to start rather than silently run a "no human" loop that never delivers/collects.
   startupAssertLive();
   startOverdueScheduler();
+  startRecurringScheduler();
+  startReconciliationScheduler(paymentProvider);
   loop().catch((err) => {
     console.error(err);
     process.exit(1);

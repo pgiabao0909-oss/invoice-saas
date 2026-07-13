@@ -88,7 +88,7 @@ export async function markSent(
   prisma: PrismaClient,
   tenantId: TenantId,
   invoiceId: InvoiceId,
-  opts: { source?: 'manual' | 'ingest' } = {},
+  opts: { source?: 'manual' | 'ingest' | 'recurring' } = {},
 ): Promise<Invoice> {
   return prisma.$transaction(async (tx) => {
     const existing = await tx.invoice.findFirst({ where: { id: invoiceId, tenantId } });

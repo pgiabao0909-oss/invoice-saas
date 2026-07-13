@@ -231,6 +231,48 @@ export const InvoiceSchema = z.object({
 export type Invoice = z.infer<typeof InvoiceSchema>;
 
 // ---------------------------------------------------------------------------
+// Recurring billing (guide §C2) — drives hands-off, scheduled invoice generation.
+// ---------------------------------------------------------------------------
+
+export const SubscriptionIntervalSchema = z.enum(['day', 'week', 'month', 'year']);
+export type SubscriptionInterval = z.infer<typeof SubscriptionIntervalSchema>;
+
+export const SubscriptionCreateSchema = z.object({
+  clientId: ClientIdSchema,
+  /** Defaults to the tenant's base currency when omitted. */
+  currency: CurrencyCodeSchema.optional(),
+  lineItems: z.array(LineItemSchema).min(1),
+  discount: DiscountSchema.optional(),
+  intervalUnit: SubscriptionIntervalSchema,
+  intervalCount: z.number().int().positive().max(120),
+  /** ISO date of the first (or next) charge. Defaults to 30 days out. */
+  anchorDate: z.iso.datetime({ offset: true }).optional(),
+  /** Net terms applied to each generated invoice (days from generation to due). */
+  netDays: z.number().int().positive().max(3650).optional(),
+  /** Whether the schedule is active (defaults to true). */
+  active: z.boolean().optional(),
+});
+export type SubscriptionCreate = z.infer<typeof SubscriptionCreateSchema>;
+
+export const SubscriptionSchema = z.object({
+  id: z.string(),
+  tenantId: z.string(),
+  clientId: z.string(),
+  currency: CurrencyCodeSchema,
+  lineItems: z.array(LineItemSchema),
+  discount: DiscountSchema.optional(),
+  intervalUnit: SubscriptionIntervalSchema,
+  intervalCount: z.number().int(),
+  /** Next charge date; the scheduler generates when anchorDate <= now. */
+  anchorDate: z.string(),
+  lastRunAt: z.string().nullable(),
+  active: z.boolean(),
+  netDays: z.number().int(),
+  createdAt: z.string(),
+});
+export type Subscription = z.infer<typeof SubscriptionSchema>;
+
+// ---------------------------------------------------------------------------
 // Payment
 // ---------------------------------------------------------------------------
 

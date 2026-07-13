@@ -57,6 +57,7 @@ model Tenant {
   payments  Payment[]
   taxRates  TaxRate[]
   outbox    OutboxMessage[]
+  subscriptions Subscription[]
 }
 
 model Client {
@@ -70,6 +71,7 @@ model Client {
 
   tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   invoices Invoice[]
+  subscriptions Subscription[]
 
   @@unique([tenantId, email])
   @@index([tenantId])
@@ -116,6 +118,34 @@ model Invoice {
   @@unique([tenantId, invoiceNumber])
   @@index([tenantId])
   @@index([tenantId, status])
+}
+
+/// Recurring billing schedule (guide §C2). When `anchorDate` passes, the worker
+/// generates an invoice and advances `anchorDate` by the interval. `active` can be
+/// toggled to pause a schedule without deleting it.
+model Subscription {
+  id            String   @id @default(cuid())
+  tenantId      String
+  clientId      String
+  currency      String   @default("USD")
+  lineItems     Json
+  discount      Json?
+  /// 'day' | 'week' | 'month' | 'year' — validated by the contract enum.
+  intervalUnit  String
+  intervalCount Int      @default(1)
+  /// Next charge date; the scheduler fires when anchorDate <= now.
+  anchorDate    DateTime
+  lastRunAt     DateTime?
+  active        Boolean  @default(true)
+  /// Net terms applied to each generated invoice (days from generation to due).
+  netDays       Int      @default(14)
+  createdAt     DateTime @default(now())
+
+  tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, anchorDate])
 }
 
 /// Idempotency is enforced by the unique (tenantId, idempotencyKey) — retries are safe.

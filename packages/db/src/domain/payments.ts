@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client';
 import type { PrismaClient } from '@prisma/client';
 import type { Invoice, InvoiceId, TenantId } from '@invoice-saas/contracts';
-import type { PaymentProvider } from '../integrations/stripe.js';
+import type { PaymentProvider, ReconcilePayment } from '../integrations/stripe.js';
 import { mapInvoice } from './invoices.js';
 
 const toJson = (v: unknown): Prisma.InputJsonValue => v as Prisma.InputJsonValue;
@@ -113,4 +113,56 @@ export async function recordPayment(
 
     return mapInvoice(updated);
   });
+}
+
+export interface ReconcileResult {
+  /** Number of charges the provider returned. */
+  scanned: number;
+  /** Charges successfully applied (invoice flipped to paid). */
+  applied: number;
+  /** Charges skipped because the invoice is gone / already paid under another key. */
+  skipped: number;
+}
+
+/**
+ * C4 — reconciliation sweep. Replays recently-completed payments through
+ * `recordPayment` so a Stripe event MISSED by the webhook still marks the invoice
+ * paid. `recordPayment` is idempotent (unique (tenantId, idempotencyKey)), so a
+ * charge already captured by a webhook is a safe no-op, and terminal failures
+ * (invoice gone / already paid under a different key) are counted as skipped rather
+ * than thrown. Transient failures still propagate so the scheduler can log + retry.
+ */
+export async function reconcilePayments(
+  prisma: PrismaClient,
+  provider: PaymentProvider,
+  opts: { createdAfter?: Date } = {},
+): Promise<ReconcileResult> {
+  const charges = await provider.listCompletedCharges({
+    createdAfter: opts.createdAfter ? opts.createdAfter.getTime() : undefined,
+  });
+  let applied = 0;
+  let skipped = 0;
+  for (const c of charges) {
+    try {
+      await recordPayment(prisma, c.tenantId as TenantId, c.invoiceId as InvoiceId, {
+        amountMinor: c.amountMinor,
+        currency: c.currency,
+        idempotencyKey: c.idempotencyKey,
+        stripeChargeId: c.eventId,
+      });
+      applied++;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '';
+      if (
+        message === 'ALREADY_PAID' ||
+        message === 'INVOICE_NOT_FOUND' ||
+        message === 'ILLEGAL_TRANSITION'
+      ) {
+        skipped++;
+      } else {
+        throw err; // transient — let the scheduler log + retry
+      }
+    }
+  }
+  return { scanned: charges.length, applied, skipped };
 }
