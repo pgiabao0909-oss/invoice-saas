@@ -23,6 +23,7 @@ import {
 import type { ClaimedJob } from '@invoice-saas/db';
 import { createEmailSender, type EmailSender } from './email.js';
 import { renderInvoicePdf, type TenantBranding } from './pdf.js';
+import { createAlertSink, consoleAlertSink, type AlertSink } from './alerting.js';
 
 /**
  * Worker: consumes the durable job queue OFF the request path (ADR 0001).
@@ -210,13 +211,24 @@ const RECONCILE_LOOKBACK_MS = Number(process.env.RECONCILE_LOOKBACK_MS ?? 24 * 6
 export function startRecurringScheduler(
   db: typeof prisma = prisma,
   intervalMs: number = RECURRING_MS,
+  alert: AlertSink = consoleAlertSink,
 ): ReturnType<typeof setInterval> {
   const tick = async (): Promise<void> => {
     try {
       const r = await runDueSubscriptions(db);
       if (r.generated > 0) console.log(`[worker] recurring generated=${r.generated}`);
+      // C5 — surface any recurring invoices the verification gate held so a human
+      // can fix the broken subscription (bad client email, bad line math, …).
+      if (r.held > 0) {
+        await alert.alert(
+          'Recurring billing: invoice(s) held by verification',
+          `${r.held} recurring invoice(s) were held after a verification failure and left as drafts. Check the audit log (event=invoice.held) for the affected subscriptions.`,
+        );
+      }
     } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
       console.error('[worker] recurring sweep failed', err);
+      await alert.alert('Recurring billing sweep failed', message);
     }
   };
   void tick();
@@ -233,6 +245,7 @@ export function startReconciliationScheduler(
   provider: PaymentProvider,
   db: typeof prisma = prisma,
   intervalMs: number = RECONCILE_MS,
+  alert: AlertSink = consoleAlertSink,
 ): ReturnType<typeof setInterval> {
   const tick = async (): Promise<void> => {
     try {
@@ -245,7 +258,11 @@ export function startReconciliationScheduler(
         );
       }
     } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
       console.error('[worker] reconciliation failed', err);
+      // C5 — a failed reconciliation sweep means missed-webhook recovery is down;
+      // money could be marked unpaid that was actually paid.
+      await alert.alert('Payment reconciliation sweep failed', message);
     }
   };
   void tick();
@@ -258,9 +275,11 @@ if (isMain) {
   // C1 — both Stripe (money) and Resend (email) must be live in prod, or we refuse
   // to start rather than silently run a "no human" loop that never delivers/collects.
   startupAssertLive();
+  // C5 — alerts route to ALERT_EMAIL when set, otherwise console-only.
+  const alerts = createAlertSink(email, process.env.ALERT_EMAIL);
   startOverdueScheduler();
-  startRecurringScheduler();
-  startReconciliationScheduler(paymentProvider);
+  startRecurringScheduler(prisma, RECURRING_MS, alerts);
+  startReconciliationScheduler(paymentProvider, prisma, RECONCILE_MS, alerts);
   loop().catch((err) => {
     console.error(err);
     process.exit(1);

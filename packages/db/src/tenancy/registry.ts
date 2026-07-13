@@ -11,12 +11,14 @@ export interface TenantRoute {
   dataMode: TenantDataMode;
   /** For SILOED tenants: the dedicated DB/schema location (null when pooled). */
   dataLocation: string | null;
+  /** Default currency (ISO-4217) for invoices created under this tenant. */
+  baseCurrency: string;
 }
 
 export async function resolveTenantBySlug(slug: string): Promise<TenantRoute | null> {
   const t = await prisma.tenant.findUnique({
     where: { slug },
-    select: { id: true, dataMode: true, dataLocation: true },
+    select: { id: true, dataMode: true, dataLocation: true, baseCurrency: true },
   });
   return t;
 }

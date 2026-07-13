@@ -8,6 +8,8 @@ import type {
   InvoiceStatus,
   InvoiceWithClient,
   OverdueCheckResult,
+  Subscription,
+  SubscriptionCreate,
   Tenant,
 } from '@invoice-saas/contracts';
 
@@ -73,6 +75,9 @@ export const api = {
   listClients: () => apiFetch<Client[]>('/clients'),
   createClient: (body: ClientCreate) =>
     apiFetch<Client>('/clients', { method: 'POST', body: JSON.stringify(body) }),
+  listSubscriptions: () => apiFetch<Subscription[]>('/subscriptions'),
+  createSubscription: (body: SubscriptionCreate) =>
+    apiFetch<Subscription>('/subscriptions', { method: 'POST', body: JSON.stringify(body) }),
   listTenants: () => apiFetch<Tenant[]>('/tenants'),
   createTenant: (body: { name: string; slug: string }) =>
     apiFetch<Tenant>('/tenants', { method: 'POST', body: JSON.stringify(body) }),

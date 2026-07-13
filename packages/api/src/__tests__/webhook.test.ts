@@ -137,6 +137,7 @@ describe('POST /webhooks/stripe', () => {
       createPaymentLink: async () => ({ url: '' }),
       verifyWebhookSignature: () => false,
       parseEvent: () => ({ type: 'x', eventId: '', tenantId: '', invoiceId: '', amountMinor: 0, currency: 'USD', idempotencyKey: '' }),
+      listCompletedCharges: async () => [],
     };
     const app = buildApp(prisma, failing);
 

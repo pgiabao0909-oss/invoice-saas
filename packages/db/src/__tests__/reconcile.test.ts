@@ -48,6 +48,20 @@ function makeFakePrisma() {
   return { prisma, store };
 }
 
+// Build a complete invoice row so mapInvoice (which reads clientId, invoiceNumber,
+// currency, createdAt, lineItems, discount, issueDate, dueDate) doesn't hit undefined.
+function makeInvoice(over: Partial<any> = {}): any {
+  return {
+    clientId: 'c1',
+    invoiceNumber: 'INV-1',
+    currency: 'USD',
+    createdAt: new Date('2026-01-01T00:00:00Z'),
+    lineItems: [],
+    discount: null,
+    ...over,
+  };
+}
+
 function stubProvider(charges: ReconcilePayment[]): PaymentProvider {
   return {
     createPaymentLink: async () => ({ url: 'https://pay.test/x' }),
@@ -60,7 +74,7 @@ function stubProvider(charges: ReconcilePayment[]): PaymentProvider {
 describe('reconcilePayments — C4 missed-webhook recovery', () => {
   it('applies a charge for a still-sent invoice (recovers a missed webhook)', async () => {
     const { prisma, store } = makeFakePrisma();
-    store.invoices.set('inv1', {
+    store.invoices.set('inv1', makeInvoice({
       id: 'inv1',
       tenantId: 't1',
       status: 'sent',
@@ -72,7 +86,7 @@ describe('reconcilePayments — C4 missed-webhook recovery', () => {
       paymentLink: null,
       issueDate: new Date('2026-01-01T00:00:00Z'),
       dueDate: new Date('2026-01-15T00:00:00Z'),
-    });
+    }));
 
     const r = await reconcilePayments(
       prisma,
@@ -88,7 +102,7 @@ describe('reconcilePayments — C4 missed-webhook recovery', () => {
 
   it('skips an already-paid invoice (idempotent replay, no double-apply)', async () => {
     const { prisma, store } = makeFakePrisma();
-    store.invoices.set('inv1', {
+    store.invoices.set('inv1', makeInvoice({
       id: 'inv1',
       tenantId: 't1',
       status: 'paid',
@@ -100,7 +114,7 @@ describe('reconcilePayments — C4 missed-webhook recovery', () => {
       paymentLink: null,
       issueDate: new Date('2026-01-01T00:00:00Z'),
       dueDate: new Date('2026-01-15T00:00:00Z'),
-    });
+    }));
 
     const r = await reconcilePayments(
       prisma,

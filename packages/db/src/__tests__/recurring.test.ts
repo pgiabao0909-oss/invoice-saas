@@ -146,6 +146,7 @@ describe('runDueSubscriptions — C2 hands-off generation', () => {
 
     const r = await runDueSubscriptions(prisma);
     expect(r.generated).toBe(1);
+    expect(r.held).toBe(0);
     expect(store.invoices.size).toBe(1);
     const inv = [...store.invoices.values()][0];
     expect(inv.status).toBe('sent'); // auto-sent via markSent, no human
@@ -161,6 +162,31 @@ describe('runDueSubscriptions — C2 hands-off generation', () => {
     const r2 = await runDueSubscriptions(prisma);
     expect(r2.generated).toBe(0);
     expect(store.invoices.size).toBe(1); // no duplicate
+  });
+
+  it('holds (does not send) a recurring invoice when verification fails, and reports held count', async () => {
+    const { prisma, store } = makeFakePrisma();
+    // Client has no deliverable email -> verifyInvoice fails CLIENT_EMAIL_MISSING,
+    // so markSent throws and the invoice is held as a draft.
+    store.clients.set('c1', { id: 'c1', tenantId: 't1', email: '', legalName: 'A' });
+    const sub = await createSubscription(prisma, 't1' as TenantId, {
+      ...baseSub,
+      anchorDate: new Date(Date.now() - DAY).toISOString(),
+    });
+
+    const r = await runDueSubscriptions(prisma);
+    expect(r.generated).toBe(1); // the invoice row was still created
+    expect(r.held).toBe(1); // ...but held by the verification gate (C5 signal)
+
+    const inv = [...store.invoices.values()][0];
+    expect(inv.status).toBe('draft'); // not sent
+    expect(store.audit.some((a) => a.event === 'invoice.held')).toBe(true);
+    expect(store.audit.some((a) => a.event === 'invoice.verification_failed')).toBe(true);
+    expect(store.jobs.some((j) => j.type === 'EMAIL_INVOICE')).toBe(false); // no email queued
+
+    // Schedule still advances so a broken period can't retry forever.
+    const updated = store.subscriptions.get(sub.id)!;
+    expect(new Date(updated.anchorDate).getTime()).toBeGreaterThan(Date.now());
   });
 
   it('does not bill a subscription whose anchorDate is in the future', async () => {

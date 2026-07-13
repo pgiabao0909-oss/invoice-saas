@@ -97,13 +97,17 @@ export async function listSubscriptions(
  * outbox, and audit trail as the manual/ingest paths), so a recurring invoice is
  * indistinguishable from a one-off. A deterministic idempotencyKey
  * (`sub:<id>:<anchorISO>`) means even a double-fired tick cannot duplicate.
+ *
+ * Returns `{ invoice, held }`: `held` is true when the verification gate refused to
+ * send (e.g. the client has no deliverable email). The schedule still advances so a
+ * broken period can't retry forever — and `held` is the signal C5 alerting watches.
  */
 async function generateFromSubscription(
   prisma: PrismaClient,
   sub: PrismaSubscription,
-): Promise<Invoice | null> {
+): Promise<{ invoice: Invoice | null; held: boolean }> {
   const client = await prisma.client.findUnique({ where: { id: sub.clientId } });
-  if (!client) return null;
+  if (!client) return { invoice: null, held: false };
 
   const invoice = await createInvoice(prisma, sub.tenantId, {
     clientId: sub.clientId,
@@ -116,9 +120,11 @@ async function generateFromSubscription(
 
   try {
     await markSent(prisma, sub.tenantId, invoice.id as InvoiceId, { source: 'recurring' });
+    return { invoice, held: false };
   } catch (err) {
     // A verification failure holds the invoice as a draft; we still advance the
-    // schedule so a broken period doesn't retry forever (C5 alerting is future work).
+    // schedule so a broken period doesn't retry forever. Record the hold for the
+    // audit trail and surface `held` so the scheduler can raise a C5 alert.
     await recordAudit(prisma, {
       tenantId: sub.tenantId,
       invoiceId: invoice.id,
@@ -128,28 +134,31 @@ async function generateFromSubscription(
         error: err instanceof Error ? err.message : 'unknown',
       },
     });
+    return { invoice, held: true };
   }
-  return invoice;
 }
 
 /**
  * C2 — generate invoices for every active subscription whose `anchorDate` has passed,
  * then advance each schedule. Mirrors `sweepAllTenants`: one subscription at a time,
- * so a bad one can't abort the rest. Returns how many invoices were generated.
+ * so a bad one can't abort the rest. Returns how many invoices were generated and how
+ * many were HELD by verification (the C5 alerting signal).
  */
-export async function runDueSubscriptions(prisma: PrismaClient): Promise<{ generated: number }> {
+export async function runDueSubscriptions(prisma: PrismaClient): Promise<{ generated: number; held: number }> {
   const due = await prisma.subscription.findMany({
     where: { active: true, anchorDate: { lte: new Date() } },
   });
   let generated = 0;
+  let held = 0;
   for (const sub of due) {
-    const invoice = await generateFromSubscription(prisma, sub);
-    if (invoice) generated++;
+    const result = await generateFromSubscription(prisma, sub);
+    if (result.invoice) generated++;
+    if (result.held) held++;
     const next = advanceDate(sub.anchorDate, sub.intervalUnit as SubscriptionInterval, sub.intervalCount);
     await prisma.subscription.update({
       where: { id: sub.id },
       data: { anchorDate: next, lastRunAt: new Date() },
     });
   }
-  return { generated };
+  return { generated, held };
 }

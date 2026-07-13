@@ -8,6 +8,7 @@ import { useTenant } from './TenantProvider';
 const nav = [
   { href: '/', label: 'Dashboard', icon: '◧' },
   { href: '/invoices', label: 'Invoices', icon: '⎙' },
+  { href: '/subscriptions', label: 'Subscriptions', icon: '↻' },
   { href: '/clients', label: 'Clients', icon: '◭' },
   { href: '/settings', label: 'Settings', icon: '⚙' },
 ];
