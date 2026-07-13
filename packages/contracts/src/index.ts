@@ -196,6 +196,8 @@ export const InvoiceCreateSchema = z.object({
   dueDate: z.iso.datetime({ offset: true }),
   lineItems: z.array(LineItemSchema).min(1),
   discount: DiscountSchema.optional(),
+  /** Optional idempotency key; when set, a retry with the same key is a no-op (guide §C3). */
+  idempotencyKey: z.string().min(1).max(200).optional(),
 });
 export type InvoiceCreate = z.infer<typeof InvoiceCreateSchema>;
 
@@ -352,6 +354,11 @@ export const IngestSchema = z.object({
   discount: DiscountSchema.optional(),
   /** When true (default) a verified invoice is sent immediately. */
   autoSend: z.boolean().optional(),
+  /**
+   * Idempotency key for the upstream event (e.g. a Stripe/CRM event id). Retrying the
+   * same key returns the original invoice instead of creating a duplicate (guide §C3).
+   */
+  idempotencyKey: z.string().min(1).max(200).optional(),
 });
 export type Ingest = z.infer<typeof IngestSchema>;
 

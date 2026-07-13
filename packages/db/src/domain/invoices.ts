@@ -65,6 +65,7 @@ export async function createInvoice(
       taxMinor: totals.taxMinor,
       discountMinor: totals.discountMinor,
       totalMinor: totals.totalMinor,
+      idempotencyKey: input.idempotencyKey ?? null,
     },
   });
 

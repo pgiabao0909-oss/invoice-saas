@@ -41,11 +41,22 @@ function makeFakePrisma() {
     },
     invoice: {
       findMany: async () => [...store.invoices.values()],
-      findFirst: async (args: { where: { id: string; tenantId?: string } }) => {
-        const r = store.invoices.get(args.where.id);
-        if (!r) return null;
-        if (args.where.tenantId && r.tenantId !== args.where.tenantId) return null;
-        return r;
+      findFirst: async (args: {
+        where: { id?: string; tenantId?: string; idempotencyKey?: string };
+      }) => {
+        const r = args.where.id ? store.invoices.get(args.where.id) : undefined;
+        if (r) {
+          if (args.where.tenantId && r.tenantId !== args.where.tenantId) return null;
+          return r;
+        }
+        if (args.where.idempotencyKey) {
+          return (
+            [...store.invoices.values()].find(
+              (x) => x.idempotencyKey === args.where.idempotencyKey,
+            ) ?? null
+          );
+        }
+        return null;
       },
       create: async (args: { data: any }) => {
         const r = {
@@ -152,5 +163,31 @@ describe('ingestWork — automated invoice pipeline', () => {
     expect(result.autoSent).toBe(false);
     expect(store.invoices.get(result.invoice.id)!.status).toBe('draft');
     expect(store.audit.map((a) => a.event)).toContain('invoice.held');
+  });
+
+  it('is idempotent: retrying the same idempotencyKey returns the original invoice (no duplicate)', async () => {
+    const { prisma, store } = makeFakePrisma();
+    const first = await ingestWork(prisma, 't1' as TenantId, {
+      ...validIngest,
+      idempotencyKey: 'evt_abc123',
+    });
+    expect(first.autoSent).toBe(true);
+
+    const second = await ingestWork(prisma, 't1' as TenantId, {
+      ...validIngest,
+      idempotencyKey: 'evt_abc123',
+    });
+    // Same invoice returned, no second row created, no second email job enqueued.
+    expect(store.invoices.size).toBe(1);
+    expect(second.invoice.id).toBe(first.invoice.id);
+    expect(second.autoSent).toBe(true);
+    expect(store.jobs.filter((j) => j.type === 'EMAIL_INVOICE').length).toBe(1);
+  });
+
+  it('treats distinct idempotencyKeys as separate invoices', async () => {
+    const { prisma, store } = makeFakePrisma();
+    await ingestWork(prisma, 't1' as TenantId, { ...validIngest, idempotencyKey: 'evt_one' });
+    await ingestWork(prisma, 't1' as TenantId, { ...validIngest, idempotencyKey: 'evt_two' });
+    expect(store.invoices.size).toBe(2);
   });
 });

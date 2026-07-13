@@ -14,6 +14,7 @@ import {
   prisma,
   recordAudit,
   sweepAllTenants,
+  startupAssertLive,
   AUDIT_EVENTS,
   type PaymentProvider,
 } from '@invoice-saas/db';
@@ -197,6 +198,9 @@ export function startOverdueScheduler(
 const isMain =
   process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1];
 if (isMain) {
+  // C1 — both Stripe (money) and Resend (email) must be live in prod, or we refuse
+  // to start rather than silently run a "no human" loop that never delivers/collects.
+  startupAssertLive();
   startOverdueScheduler();
   loop().catch((err) => {
     console.error(err);

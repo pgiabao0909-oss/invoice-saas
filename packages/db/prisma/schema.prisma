@@ -104,6 +104,9 @@ model Invoice {
   amountPaidMinor Int         @default(0)
   /// Stripe-hosted payment link created at send time (T3). Lets clients pay online.
   paymentLink  String?
+  /// Idempotency key for the upstream ingest event (guide §C3). Unique so a retried
+  /// POST /ingest can never create a duplicate invoice. Null for manually-created invoices.
+  idempotencyKey String? @unique
   createdAt     DateTime      @default(now())
 
   tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)

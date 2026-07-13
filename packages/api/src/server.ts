@@ -9,7 +9,7 @@ config({ path: fileURLToPath(new URL('../../../.env', import.meta.url)) });
 import Fastify from 'fastify';
 import type { FastifyInstance } from 'fastify';
 import { serializerCompiler, validatorCompiler, ZodTypeProvider } from '@fastify/type-provider-zod';
-import { createPaymentProvider, prisma } from '@invoice-saas/db';
+import { createPaymentProvider, prisma, startupAssertLive } from '@invoice-saas/db';
 import { healthRoutes } from './routes/health.js';
 import { invoiceRoutes } from './routes/invoices.js';
 import { clientRoutes } from './routes/clients.js';
@@ -55,6 +55,10 @@ export async function buildServer(): Promise<FastifyInstance> {
 // Start the server only when this module is the entry point (not under import/test).
 const isMain = process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1];
 if (isMain) {
+  // C1 — fail loud: never boot production with the Stripe webhook secret unset. In
+  // fake mode the webhook signature check is a no-op, so ANY payload could mark an
+  // invoice paid. The worker gate additionally requires Resend (it sends the mail).
+  startupAssertLive(process.env, { requireResend: false });
   const app = await buildServer();
   // Default to 3001 so the API never clashes with the web app (Next dev on :3000)
   // and matches the web's same-origin rewrite (/api/* -> http://localhost:3001).
