@@ -25,7 +25,13 @@ export default function InvoicesPage() {
   const { tenant } = useTenant();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
-  const [status, setStatus] = useState<'' | InvoiceStatus>('');
+  const [status, setStatus] = useState<'' | InvoiceStatus>(() => {
+    if (typeof window === 'undefined') return '';
+    const q = new URLSearchParams(window.location.search).get('status');
+    return (q === 'draft' || q === 'sent' || q === 'paid' || q === 'overdue' || q === 'void' ? q : '') as
+      | ''
+      | InvoiceStatus;
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

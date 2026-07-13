@@ -39,7 +39,10 @@ export default function NewInvoicePage() {
     api.listClients().then(setClients);
   }, [tenant]);
 
-  const totals = useMemo(() => computeTotals(items, []), [items]);
+  const totals = useMemo(
+    () => computeTotals(items, [], discountMinor > 0 ? { amountMinor: discountMinor } : undefined),
+    [items, discountMinor],
+  );
 
   if (!tenant) return null;
 
@@ -145,11 +148,25 @@ export default function NewInvoicePage() {
                 onChangeMinor={setDiscountMinor}
               />
             </Field>
-            <div className="flex items-center justify-between border-t border-slate-100 pt-4">
-              <span className="text-sm text-slate-500">Total</span>
-              <span className="nums text-lg font-semibold text-slate-900">
-                {formatMoney(totals.totalMinor, currency)}
-              </span>
+            <div className="space-y-1 border-t border-slate-100 pt-4 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">Subtotal</span>
+                <span className="nums text-slate-800">{formatMoney(totals.subtotalMinor, currency)}</span>
+              </div>
+              {totals.discountMinor > 0 ? (
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">Discount</span>
+                  <span className="nums text-slate-800">
+                    - {formatMoney(totals.discountMinor, currency)}
+                  </span>
+                </div>
+              ) : null}
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-sm font-medium text-slate-700">Total</span>
+                <span className="nums text-lg font-semibold text-slate-900">
+                  {formatMoney(totals.totalMinor, currency)}
+                </span>
+              </div>
             </div>
           </CardBody>
         </Card>

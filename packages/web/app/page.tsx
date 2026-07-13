@@ -69,13 +69,14 @@ export default function DashboardPage() {
       />
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-        <KpiCard label="Draft" value={stats?.draft ?? 0} />
-        <KpiCard label="Sent" value={stats?.sent ?? 0} />
-        <KpiCard label="Paid" value={stats?.paid ?? 0} accent="emerald" />
+        <KpiCard label="Draft" value={stats?.draft ?? 0} href="/invoices?status=draft" />
+        <KpiCard label="Sent" value={stats?.sent ?? 0} href="/invoices?status=sent" />
+        <KpiCard label="Paid" value={stats?.paid ?? 0} accent="emerald" href="/invoices?status=paid" />
         <KpiCard
           label="Overdue"
           value={stats?.overdue ?? 0}
           accent="rose"
+          href="/invoices?status=overdue"
           action={
             <Button size="sm" variant="ghost" onClick={runSweep} disabled={sweeping}>
               {sweeping ? 'Running…' : 'Run sweep'}
@@ -86,6 +87,7 @@ export default function DashboardPage() {
           label="Outstanding"
           value={stats ? formatMoney(stats.outstandingMinor, currency) : '—'}
           accent="brand"
+          href="/invoices"
         />
       </div>
 
