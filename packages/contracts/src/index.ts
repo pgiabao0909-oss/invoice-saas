@@ -442,6 +442,29 @@ export const AuditLogEntrySchema = z.object({
 });
 export type AuditLogEntry = z.infer<typeof AuditLogEntrySchema>;
 
+/** A single cross-tenant leak detected by the API-boundary isolation guard (C6). */
+export const IsolationViolationEventSchema = z.object({
+  id: z.cuid(),
+  tenantId: TenantIdSchema,
+  detail: z.any(),
+  createdAt: z.iso.datetime(),
+});
+export type IsolationViolationEvent = z.infer<typeof IsolationViolationEventSchema>;
+
+/**
+ * C6 — system-wide tenant-isolation health, surfaced by `GET /admin/isolation-status`.
+ * `healthy` is true only when there are zero recent API-boundary violations AND zero
+ * rows whose `tenantId` is not a real tenant (the two checks the worker scanner runs).
+ */
+export const IsolationStatusSchema = z.object({
+  healthy: z.boolean(),
+  tenants: z.number().int().nonnegative(),
+  violations: z.array(IsolationViolationEventSchema),
+  foreignRows: z.record(z.string(), z.number().int().nonnegative()),
+  checkedAt: z.iso.datetime(),
+});
+export type IsolationStatus = z.infer<typeof IsolationStatusSchema>;
+
 /** Query params for GET /audit. */
 export const AuditListQuerySchema = z.object({
   invoiceId: InvoiceIdSchema.optional(),

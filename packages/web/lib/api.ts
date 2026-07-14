@@ -7,6 +7,7 @@ import type {
   InvoiceCreate,
   InvoiceStatus,
   InvoiceWithClient,
+  IsolationStatus,
   OverdueCheckResult,
   Subscription,
   SubscriptionCreate,
@@ -86,4 +87,6 @@ export const api = {
     apiFetch<Tenant>('/me/branding', { method: 'PATCH', body: JSON.stringify(body) }),
   runOverdue: (token: string) =>
     apiFetch<OverdueCheckResult>('/admin/run-overdue', { method: 'POST', token }),
+  getIsolationStatus: (token: string) =>
+    apiFetch<IsolationStatus>('/admin/isolation-status', { token }),
 };

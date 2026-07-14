@@ -13,6 +13,7 @@ export * from './domain/recurring.js';
 export * from './domain/verify.js';
 export * from './domain/audit.js';
 export * from './domain/ingest.js';
+export * from './domain/isolation.js';
 export * from './integrations/stripe.js';
 export * from './integrations/providerStatus.js';
 export * from './jobs/queue.js';

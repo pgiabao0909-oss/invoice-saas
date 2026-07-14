@@ -1,8 +1,12 @@
 import type { FastifyInstance } from 'fastify';
 import type { PrismaClient } from '@prisma/client';
 import { ZodTypeProvider } from '@fastify/type-provider-zod';
-import { OverdueCheckResultSchema } from '@invoice-saas/contracts';
-import { sweepAllTenants } from '@invoice-saas/db';
+import {
+  ApiErrorSchema,
+  IsolationStatusSchema,
+  OverdueCheckResultSchema,
+} from '@invoice-saas/contracts';
+import { getIsolationStatus, sweepAllTenants } from '@invoice-saas/db';
 import { requireAdminToken } from '../plugins/admin-auth.js';
 
 /**
@@ -33,6 +37,23 @@ export function adminRoutes(deps: AdminDeps) {
       async (_request, reply) => {
         const result = await sweepAllTenants(deps.prisma, new Date());
         return reply.code(200).send({ flipped: result.flipped, remindersEnqueued: result.remindersEnqueued });
+      },
+    );
+
+    // C6 — admin view of tenant-isolation health (see domain/isolation.ts). Cross-tenant
+    // by design: it reads every tenant's violations + scans all tables for foreign
+    // tenantId rows. Protected by the same admin token as the sweep trigger.
+    app.withTypeProvider<ZodTypeProvider>().get(
+      '/isolation-status',
+      {
+        preHandler: requireAdminToken,
+        schema: {
+          response: { 200: IsolationStatusSchema, 401: ApiErrorSchema },
+        },
+      },
+      async (_request, reply) => {
+        const status = await getIsolationStatus(deps.prisma);
+        return reply.code(200).send(status);
       },
     );
   };
