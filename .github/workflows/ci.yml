@@ -1,0 +1,39 @@
+name: CI
+
+# Run the same verification gate used locally on every push/PR to master:
+# Prisma client generate -> typecheck -> test (in-memory fake Prisma, no DB) ->
+# web build. Tests use the dependency-injected fake Prisma, so no Postgres service
+# or DATABASE_URL secret is required.
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  verify:
+    name: Typecheck · Test · Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npm run prisma:generate
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm run test
+
+      - name: Build web
+        run: npm run build -w @invoice-saas/web
