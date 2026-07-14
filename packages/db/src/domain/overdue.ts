@@ -1,6 +1,8 @@
 import { Prisma } from '@prisma/client';
 import type { PrismaClient } from '@prisma/client';
 import type { TenantId } from '@invoice-saas/contracts';
+import { AUDIT_EVENTS } from '@invoice-saas/contracts';
+import { recordAudit } from './audit.js';
 
 /**
  * T4 — overdue detection + reminder scheduling.
@@ -21,6 +23,8 @@ export interface OverdueSweepResult {
   flipped: number;
   /** Number of INVOICE_REMINDER jobs enqueued. */
   remindersEnqueued: number;
+  /** IDs of the invoices flagged overdue in THIS run (empty on a no-op re-run). */
+  flippedIds: string[];
 }
 
 /**
@@ -53,6 +57,7 @@ export async function detectOverdue(
 
   let flipped = 0;
   let remindersEnqueued = 0;
+  const flippedIds: string[] = [];
 
   for (const invoice of due) {
     await prisma.$transaction(async (tx) => {
@@ -80,8 +85,37 @@ export async function detectOverdue(
         remindersEnqueued++;
       }
       flipped++;
+      flippedIds.push(invoice.id);
+      await recordAudit(tx as any, {
+        tenantId,
+        invoiceId: invoice.id,
+        event: AUDIT_EVENTS.INVOICE_OVERDUE,
+      });
     });
   }
 
-  return { flipped, remindersEnqueued };
+  return { flipped, remindersEnqueued, flippedIds };
+}
+
+/**
+ * Sweep EVERY tenant (guide §4.3 — dunning as a recurring, hands-off job). Per-tenant
+ * calls keep a failure on one tenant from aborting the others, and `detectOverdue` is
+ * internally idempotent. Each newly-overdue invoice gets an immutable audit record so
+ * the dunning action is part of the trail. Returns aggregates across all tenants.
+ */
+export async function sweepAllTenants(
+  prisma: PrismaClient,
+  asOf: Date = new Date(),
+): Promise<OverdueSweepResult> {
+  const tenants = await prisma.tenant.findMany({ select: { id: true } });
+  let flipped = 0;
+  let remindersEnqueued = 0;
+  const flippedIds: string[] = [];
+  for (const t of tenants) {
+    const r = await detectOverdue(prisma, t.id, asOf);
+    flipped += r.flipped;
+    remindersEnqueued += r.remindersEnqueued;
+    flippedIds.push(...r.flippedIds);
+  }
+  return { flipped, remindersEnqueued, flippedIds };
 }

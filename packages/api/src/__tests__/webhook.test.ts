@@ -86,6 +86,7 @@ function makeFakePrisma() {
   const prisma: any = {
     $transaction: async (fn: (tx: ReturnType<typeof models>) => Promise<unknown>) => fn(models()),
     ...models(),
+    auditLog: { create: async () => ({}) },
   };
   return { prisma, invoice, payments };
 }
@@ -136,6 +137,7 @@ describe('POST /webhooks/stripe', () => {
       createPaymentLink: async () => ({ url: '' }),
       verifyWebhookSignature: () => false,
       parseEvent: () => ({ type: 'x', eventId: '', tenantId: '', invoiceId: '', amountMinor: 0, currency: 'USD', idempotencyKey: '' }),
+      listCompletedCharges: async () => [],
     };
     const app = buildApp(prisma, failing);
 

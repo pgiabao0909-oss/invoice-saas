@@ -16,6 +16,7 @@
   "dependencies": {
     "@invoice-saas/db": "*",
     "@prisma/client": "^5.20.0",
+    "dotenv": "^16.4.5",
     "pdfkit": "^0.15.0"
   },
   "devDependencies": {

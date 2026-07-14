@@ -1,4 +1,7 @@
 import type { ReactNode } from 'react';
+import './globals.css';
+import { TenantProvider } from '@/components/TenantProvider';
+import { AppShell } from '@/components/AppShell';
 
 export const metadata = {
   title: 'Invoice SaaS',
@@ -8,7 +11,11 @@ export const metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <TenantProvider>
+          <AppShell>{children}</AppShell>
+        </TenantProvider>
+      </body>
     </html>
   );
 }

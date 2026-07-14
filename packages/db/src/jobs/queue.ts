@@ -25,6 +25,10 @@ export interface ClaimedJob {
   id: string;
   type: string;
   payload: unknown;
+  /** Attempt count AFTER this claim (the claim increments it). First run = 1. */
+  attempts: number;
+  /** Retry ceiling for this job. */
+  maxAttempts: number;
 }
 
 /**
@@ -43,7 +47,7 @@ export async function claimNextJob(prisma: PrismaClient): Promise<ClaimedJob | n
       FOR UPDATE SKIP LOCKED
       LIMIT 1
     )
-    RETURNING id, type, payload;
+    RETURNING id, type, payload, attempts, "maxAttempts";
   `;
   return rows[0] ?? null;
 }
@@ -52,8 +56,56 @@ export async function completeJob(prisma: PrismaClient, id: string): Promise<voi
   await prisma.job.update({ where: { id }, data: { status: 'DONE' } });
 }
 
-export async function failJob(prisma: PrismaClient, id: string): Promise<void> {
-  await prisma.job.update({ where: { id }, data: { status: 'FAILED' } });
+/**
+ * Exponential backoff for a failed job (guide §3.2 — "wait and try again, e.g. 3
+ * times with exponential backoff"). Pure and time-free so it is trivially testable:
+ * delay = base × 2^(attempts−1), capped. `attempts` is the post-claim count, so the
+ * first failure (attempts=1) waits `base`, the second waits `2×base`, and so on.
+ */
+export function computeBackoffMs(attempts: number, baseMs = 1000, capMs = 3_600_000): number {
+  const exp = Math.max(0, attempts - 1);
+  // Guard the shift against absurd exponents before capping.
+  const raw = exp > 40 ? capMs : baseMs * 2 ** exp;
+  return Math.min(capMs, raw);
+}
+
+export interface FailJobResult {
+  /** True when the job was rescheduled for another attempt; false when parked FAILED. */
+  retried: boolean;
+  /** When retried, the time the job becomes eligible again. */
+  availableAt?: Date;
+}
+
+/**
+ * Handle a job failure with durable retry. If the job still has attempts left, it is
+ * returned to PENDING with `availableAt` pushed out by the backoff delay, so a
+ * transient fault (network blip, provider 5xx) is retried automatically off the
+ * request path. Once attempts are exhausted it is parked as FAILED with the last
+ * error recorded, so it never silently vanishes.
+ */
+export async function failJob(
+  prisma: PrismaClient,
+  job: Pick<ClaimedJob, 'id' | 'attempts' | 'maxAttempts'>,
+  opts: { error?: unknown; now?: Date; baseMs?: number; capMs?: number } = {},
+): Promise<FailJobResult> {
+  const message =
+    opts.error instanceof Error ? opts.error.message : opts.error != null ? String(opts.error) : null;
+
+  if (job.attempts < job.maxAttempts) {
+    const now = opts.now ?? new Date();
+    const availableAt = new Date(now.getTime() + computeBackoffMs(job.attempts, opts.baseMs, opts.capMs));
+    await prisma.job.update({
+      where: { id: job.id },
+      data: { status: 'PENDING', availableAt, lastError: message },
+    });
+    return { retried: true, availableAt };
+  }
+
+  await prisma.job.update({
+    where: { id: job.id },
+    data: { status: 'FAILED', lastError: message },
+  });
+  return { retried: false };
 }
 
 /**

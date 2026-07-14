@@ -29,6 +29,16 @@ export interface ParsedStripeEvent {
   idempotencyKey: string;
 }
 
+/** A completed payment surfaced for reconciliation (guide §C4). */
+export interface ReconcilePayment {
+  eventId: string;
+  tenantId: string;
+  invoiceId: string;
+  amountMinor: number;
+  currency: string;
+  idempotencyKey: string;
+}
+
 export interface PaymentProvider {
   /** Creates a hosted payment link for an invoice; returns its URL. */
   createPaymentLink(input: CreatePaymentLinkInput): Promise<{ url: string }>;
@@ -36,6 +46,14 @@ export interface PaymentProvider {
   verifyWebhookSignature(rawBody: string, signature: string): boolean;
   /** Parses a raw webhook body into the normalized event shape. */
   parseEvent(rawBody: string): ParsedStripeEvent;
+  /**
+   * Lists recently-completed payments for reconciliation (guide §C4). The live
+   * provider queries Stripe (Payment Intents with metadata); the fake returns [].
+   * The scheduler replays these through `recordPayment`, which is idempotent, so a
+   * charge already captured by a webhook is a safe no-op and a MISSED webhook is
+   * applied — closing the loop when Stripe fails to deliver an event.
+   */
+  listCompletedCharges(opts: { createdAfter?: number }): Promise<ReconcilePayment[]>;
 }
 
 /**
@@ -60,9 +78,12 @@ export class StripePaymentProvider implements PaymentProvider {
         'line_items[0][price_data][product_data][name]': input.description,
         'line_items[0][price_data][unit_amount]': String(input.amountMinor),
         'line_items[0][quantity]': '1',
-        // invoice id travels in metadata so the webhook can route back to it.
+        // invoice id travels in metadata so the webhook can route back to it. The
+        // idempotencyKey (== invoice id) is shared by the webhook and reconciliation
+        // so a replayed payment is a safe no-op (guide §C4).
         'metadata[invoiceId]': input.invoiceId,
         'metadata[tenantId]': input.tenantId,
+        'metadata[idempotencyKey]': input.invoiceId,
       }).toString(),
     });
     if (!res.ok) {
@@ -110,6 +131,40 @@ export class StripePaymentProvider implements PaymentProvider {
       idempotencyKey,
     };
   }
+
+  async listCompletedCharges(opts: { createdAfter?: number }): Promise<ReconcilePayment[]> {
+    const out: ReconcilePayment[] = [];
+    let startingAfter: string | undefined;
+    do {
+      const qs = new URLSearchParams({ status: 'succeeded', limit: '100' });
+      if (opts.createdAfter) qs.set('created[gte]', String(Math.floor(opts.createdAfter / 1000)));
+      if (startingAfter) qs.set('starting_after', startingAfter);
+      const res = await fetch(`https://api.stripe.com/v1/payment_intents?${qs}`, {
+        headers: { Authorization: `Bearer ${this.secretKey}` },
+      });
+      if (!res.ok) {
+        throw new Error(`Stripe listPaymentIntents failed: ${res.status} ${await res.text()}`);
+      }
+      const data = (await res.json()) as { data: Array<Record<string, any>>; has_more: boolean };
+      for (const pi of data.data) {
+        const meta = (pi['metadata'] ?? {}) as Record<string, unknown>;
+        const invoiceId = String(meta['invoiceId'] ?? '');
+        const tenantId = String(meta['tenantId'] ?? '');
+        if (!invoiceId || !tenantId) continue; // only our invoices carry our metadata
+        out.push({
+          eventId: String(pi['id'] ?? ''),
+          tenantId,
+          invoiceId,
+          amountMinor: Number(pi['amount_received'] ?? pi['amount'] ?? 0),
+          currency: String(pi['currency'] ?? 'USD').toUpperCase(),
+          idempotencyKey: String(meta['idempotencyKey'] ?? pi['id'] ?? ''),
+        });
+      }
+      startingAfter =
+        data.has_more && data.data.length ? String(data.data[data.data.length - 1]!['id']) : undefined;
+    } while (startingAfter);
+    return out;
+  }
 }
 
 /**
@@ -141,6 +196,11 @@ export class FakePaymentProvider implements PaymentProvider {
       currency: (e.currency ?? 'USD').toUpperCase(),
       idempotencyKey: e.idempotencyKey ?? 'idem_fake',
     };
+  }
+
+  async listCompletedCharges(): Promise<ReconcilePayment[]> {
+    // No real charges in fake mode — nothing to reconcile.
+    return [];
   }
 }
 

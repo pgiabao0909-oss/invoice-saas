@@ -7,7 +7,7 @@ import { markSent } from '../domain/invoices.js';
  * job enqueued in the same transaction, and rejection when the invoice isn't draft.
  */
 function fakePrisma(initialStatus: 'draft' | 'sent') {
-  const calls = { update: 0, outbox: 0, job: 0 };
+  const calls = { update: 0, outbox: 0, job: 0, audit: 0 };
   const store = {
     invoice: {
       id: 'inv1',
@@ -36,7 +36,9 @@ function fakePrisma(initialStatus: 'draft' | 'sent') {
         return { ...store.invoice, ...args.data };
       },
     },
+    client: { findUnique: async () => ({ id: 'c1', email: 'billing@acme.test' }) },
     outboxMessage: { create: async () => { calls.outbox++; return {}; } },
+    auditLog: { create: async () => { calls.audit++; return {}; } },
     job: { create: async () => { calls.job++; return {}; } },
   };
   const prisma: any = { $transaction: async (fn: (t: any) => Promise<unknown>) => fn(tx) };

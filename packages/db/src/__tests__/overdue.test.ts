@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { detectOverdue } from '../domain/overdue.js';
+import { detectOverdue, sweepAllTenants } from '../domain/overdue.js';
 import type { TenantId } from '@invoice-saas/contracts';
 
 /**
@@ -97,6 +97,7 @@ function makeFakePrisma(initial: InvoiceRow[]) {
     $transaction: async (fn: (tx: {
       invoice: ReturnType<typeof invoiceModels>;
       job: { create: (a: { data: { type: string; payload: Record<string, unknown>; availableAt: Date } }) => Promise<unknown> };
+      auditLog: { create: (a: { data: { tenantId: string; invoiceId: string | null; event: string; detail?: unknown } }) => Promise<unknown> };
     }) => Promise<unknown>) =>
       fn({
         invoice: invoiceModels(),
@@ -106,6 +107,7 @@ function makeFakePrisma(initial: InvoiceRow[]) {
             return {};
           },
         },
+        auditLog: { create: async () => ({}) },
       }),
     invoice: invoiceModels(),
     job: {
@@ -114,6 +116,8 @@ function makeFakePrisma(initial: InvoiceRow[]) {
         return {};
       },
     },
+    tenant: { findMany: async () => [{ id: 't1' }] },
+    auditLog: { create: async () => ({}) },
   };
   return { prisma, store };
 }
@@ -203,5 +207,19 @@ describe('detectOverdue — T4 overdue sweep', () => {
     // Already 'overdue' on the second pass → no further flips, no duplicate jobs.
     expect(store.invoices.get('inv1')!.status).toBe('overdue');
     expect(store.jobs).toHaveLength(3);
+  });
+});
+
+describe('sweepAllTenants — hands-off dunning', () => {
+  it('sweeps every tenant and reports aggregate flips (each flip is audited in detectOverdue)', async () => {
+    const due = new Date('2026-01-15T00:00:00Z');
+    const inv = makeInvoice('sent', 1000, 0, due, 't1', 'inv1');
+    const { prisma, store } = makeFakePrisma([inv]);
+
+    const result = await sweepAllTenants(prisma, ASOF);
+
+    expect(result.flipped).toBe(1);
+    expect(result.flippedIds).toEqual(['inv1']);
+    expect(store.invoices.get('inv1')!.status).toBe('overdue');
   });
 });

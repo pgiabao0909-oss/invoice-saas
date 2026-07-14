@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type { PrismaClient } from '@prisma/client';
-import { PaymentProvider, recordPayment } from '@invoice-saas/db';
+import { AUDIT_EVENTS, PaymentProvider, recordAudit, recordPayment } from '@invoice-saas/db';
 
 /**
  * T3 — Stripe webhook receiver. Registered WITHOUT `resolveTenant` because the
@@ -46,6 +46,13 @@ export function stripeWebhookRoutes(deps: StripeWebhookDeps) {
             currency: event.currency,
             idempotencyKey: event.idempotencyKey,
             stripeChargeId: event.eventId,
+          });
+          // Append to the immutable trail that the invoice was paid (guide §2.5).
+          await recordAudit(deps.prisma, {
+            tenantId: event.tenantId,
+            invoiceId: event.invoiceId,
+            event: AUDIT_EVENTS.PAYMENT_RECORDED,
+            detail: { amountMinor: event.amountMinor, currency: event.currency },
           });
         } catch (err) {
           const message = err instanceof Error ? err.message : 'unknown_error';

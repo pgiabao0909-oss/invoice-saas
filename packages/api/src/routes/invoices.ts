@@ -4,10 +4,21 @@ import {
   ApiErrorSchema,
   InvoiceCreateSchema,
   InvoiceIdSchema,
+  InvoiceListQuerySchema,
   InvoiceSchema,
+  InvoiceWithClientSchema,
   z,
 } from '@invoice-saas/contracts';
-import { clientForTenant, createInvoice, markSent, prisma } from '@invoice-saas/db';
+import {
+  AUDIT_EVENTS,
+  clientForTenant,
+  createInvoice,
+  getInvoiceWithClient,
+  listInvoices,
+  markSent,
+  prisma,
+  recordAudit,
+} from '@invoice-saas/db';
 import { resolveTenant } from '../plugins/tenant.js';
 
 // T1 — create a draft invoice. Input/output validated by the shared Zod schemas,
@@ -27,6 +38,12 @@ export async function invoiceRoutes(app: FastifyInstance): Promise<void> {
       const tenant = request.tenant!;
       const db = clientForTenant(tenant);
       const invoice = await createInvoice(db, tenant.id, request.body);
+      await recordAudit(prisma, {
+        tenantId: tenant.id,
+        invoiceId: invoice.id,
+        event: AUDIT_EVENTS.INVOICE_CREATED,
+        detail: { source: 'manual' },
+      });
       return reply.code(201).send(invoice);
     },
   );
@@ -59,6 +76,45 @@ export async function invoiceRoutes(app: FastifyInstance): Promise<void> {
         }
         throw err;
       }
+    },
+  );
+
+  // UI build — list invoices for the tenant, optionally filtered by status/client.
+  app.withTypeProvider<ZodTypeProvider>().get(
+    '/invoices',
+    {
+      preHandler: resolveTenant,
+      schema: {
+        querystring: InvoiceListQuerySchema,
+        response: { 200: z.array(InvoiceSchema), 401: ApiErrorSchema },
+      },
+    },
+    async (request, reply) => {
+      const tenant = request.tenant!;
+      const db = clientForTenant(tenant);
+      const invoices = await listInvoices(db, tenant.id, request.query);
+      return reply.code(200).send(invoices);
+    },
+  );
+
+  // UI build — invoice detail with its client embedded.
+  app.withTypeProvider<ZodTypeProvider>().get(
+    '/invoices/:id',
+    {
+      preHandler: resolveTenant,
+      schema: {
+        params: z.object({ id: InvoiceIdSchema }),
+        response: { 200: InvoiceWithClientSchema, 401: ApiErrorSchema, 404: ApiErrorSchema },
+      },
+    },
+    async (request, reply) => {
+      const tenant = request.tenant!;
+      const db = clientForTenant(tenant);
+      const invoice = await getInvoiceWithClient(db, tenant.id, request.params.id);
+      if (!invoice) {
+        return reply.code(404).send({ error: 'not_found', message: 'invoice not found' });
+      }
+      return reply.code(200).send(invoice);
     },
   );
 }

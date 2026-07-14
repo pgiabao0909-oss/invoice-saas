@@ -1,8 +1,29 @@
 import { fileURLToPath } from 'node:url';
-import { claimNextJob, completeJob, createPaymentProvider, ensurePaymentLink, failJob, prisma, type PaymentProvider } from '@invoice-saas/db';
+import { config } from 'dotenv';
+
+// Load env from the repo-root .env. cwd = packages/worker when run via npm, so the
+// repo root is three levels up from this file.
+config({ path: fileURLToPath(new URL('../../../.env', import.meta.url)) });
+
+import {
+  claimNextJob,
+  completeJob,
+  createPaymentProvider,
+  ensurePaymentLink,
+  failJob,
+  prisma,
+  recordAudit,
+  reconcilePayments,
+  runDueSubscriptions,
+  sweepAllTenants,
+  startupAssertLive,
+  AUDIT_EVENTS,
+  type PaymentProvider,
+} from '@invoice-saas/db';
 import type { ClaimedJob } from '@invoice-saas/db';
 import { createEmailSender, type EmailSender } from './email.js';
 import { renderInvoicePdf, type TenantBranding } from './pdf.js';
+import { createAlertSink, consoleAlertSink, type AlertSink } from './alerting.js';
 
 /**
  * Worker: consumes the durable job queue OFF the request path (ADR 0001).
@@ -101,6 +122,12 @@ export async function handleReminder(
     subject: `Overdue invoice ${invoice.invoiceNumber}`,
     body: `Invoice ${invoice.invoiceNumber} is overdue. Please pay at your earliest convenience.`,
   });
+  // Append to the immutable trail that this dunning email actually went out.
+  await recordAudit(deps.prisma, {
+    tenantId,
+    invoiceId,
+    event: AUDIT_EVENTS.REMINDER_SENT,
+  });
 }
 
 async function handleJob(job: ClaimedJob): Promise<void> {
@@ -137,14 +164,193 @@ async function loop(): Promise<void> {
       await completeJob(prisma, job.id);
     } catch (err) {
       console.error('[worker] job failed', job.id, err);
-      await failJob(prisma, job.id);
+      // Durable retry: requeue with exponential backoff, or park as FAILED once
+      // attempts are exhausted (guide §3.2). `attempts` on the claimed job is the
+      // post-claim count, so the first failure waits the base delay.
+      await failJob(prisma, job, { error: err });
     }
   }
+}
+
+const OVERDUE_SWEEP_MS = Number(process.env.OVERDUE_SWEEP_MS ?? 60_000);
+
+/**
+ * Hands-off dunning (guide §4.3): runs the overdue sweep on a timer so invoices are
+ * flipped + reminders are queued automatically — no manual button, no cron entry
+ * required. The sweep is internally idempotent, so running it every minute only acts
+ * on invoices that newly crossed their due date. Returns the interval handle.
+ */
+export function startOverdueScheduler(
+  db: typeof prisma = prisma,
+  intervalMs: number = OVERDUE_SWEEP_MS,
+): ReturnType<typeof setInterval> {
+  const tick = async (): Promise<void> => {
+    try {
+      const r = await sweepAllTenants(db);
+      if (r.flipped > 0 || r.remindersEnqueued > 0) {
+        console.log(`[worker] overdue sweep flipped=${r.flipped} reminders=${r.remindersEnqueued}`);
+      }
+    } catch (err) {
+      console.error('[worker] overdue sweep failed', err);
+    }
+  };
+  void tick();
+  return setInterval(tick, intervalMs);
+}
+
+const RECURRING_MS = Number(process.env.RECURRING_MS ?? 60_000);
+const RECONCILE_MS = Number(process.env.RECONCILE_MS ?? 300_000);
+const RECONCILE_LOOKBACK_MS = Number(process.env.RECONCILE_LOOKBACK_MS ?? 24 * 60 * 60 * 1000);
+const TENANCY_SCAN_MS = Number(process.env.TENANCY_SCAN_MS ?? 300_000);
+const TENANCY_SCAN_LOOKBACK_MS = Number(process.env.TENANCY_SCAN_LOOKBACK_MS ?? 10 * 60 * 1000);
+
+/**
+ * C2 — hands-off recurring billing (guide §C2). Runs `runDueSubscriptions` on a
+ * timer so any subscription whose `anchorDate` has passed is billed automatically —
+ * no manual trigger. Idempotent via the per-run idempotencyKey, so a double tick
+ * cannot create a duplicate invoice.
+ */
+export function startRecurringScheduler(
+  db: typeof prisma = prisma,
+  intervalMs: number = RECURRING_MS,
+  alert: AlertSink = consoleAlertSink,
+): ReturnType<typeof setInterval> {
+  const tick = async (): Promise<void> => {
+    try {
+      const r = await runDueSubscriptions(db);
+      if (r.generated > 0) console.log(`[worker] recurring generated=${r.generated}`);
+      // C5 — surface any recurring invoices the verification gate held so a human
+      // can fix the broken subscription (bad client email, bad line math, …).
+      if (r.held > 0) {
+        await alert.alert(
+          'Recurring billing: invoice(s) held by verification',
+          `${r.held} recurring invoice(s) were held after a verification failure and left as drafts. Check the audit log (event=invoice.held) for the affected subscriptions.`,
+        );
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error('[worker] recurring sweep failed', err);
+      await alert.alert('Recurring billing sweep failed', message);
+    }
+  };
+  void tick();
+  return setInterval(tick, intervalMs);
+}
+
+/**
+ * C4 — hands-off payment reconciliation (guide §C4). Periodically replays recently
+ * completed Stripe payments through `recordPayment`, so an invoice is still marked
+ * paid even if Stripe's webhook was missed. In fake-provider mode the provider
+ * returns nothing, so the sweep is a no-op.
+ */
+export function startReconciliationScheduler(
+  provider: PaymentProvider,
+  db: typeof prisma = prisma,
+  intervalMs: number = RECONCILE_MS,
+  alert: AlertSink = consoleAlertSink,
+): ReturnType<typeof setInterval> {
+  const tick = async (): Promise<void> => {
+    try {
+      const r = await reconcilePayments(db, provider, {
+        createdAfter: new Date(Date.now() - RECONCILE_LOOKBACK_MS),
+      });
+      if (r.applied > 0 || r.skipped > 0) {
+        console.log(
+          `[worker] reconcile scanned=${r.scanned} applied=${r.applied} skipped=${r.skipped}`,
+        );
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error('[worker] reconciliation failed', err);
+      // C5 — a failed reconciliation sweep means missed-webhook recovery is down;
+      // money could be marked unpaid that was actually paid.
+      await alert.alert('Payment reconciliation sweep failed', message);
+    }
+  };
+  void tick();
+  return setInterval(tick, intervalMs);
+}
+
+/**
+ * C6 — tenant isolation scanner (the scheduled half of the isolation guard, ADR 0001).
+ *
+ * Runs two independent checks and raises a C5 alert on any anomaly:
+ *   1. API-boundary violations: reads recent `tenant.isolation_violation` audit events
+ *      (emitted by the API's onSend guard) — a route leaked cross-tenant data.
+ *   2. Data-integrity: scans every tenant-scoped table for rows whose `tenantId` is not
+ *      a real tenant (orphaned / injected / mis-tenant'd). Even if app scoping is correct,
+ *      this catches corruption the app layer can't.
+ *
+ * Neither check mutates data; it only observes and alerts, so it is safe to run often.
+ */
+export function startTenancyScanner(
+  db: typeof prisma = prisma,
+  intervalMs: number = TENANCY_SCAN_MS,
+  alert: AlertSink = consoleAlertSink,
+): ReturnType<typeof setInterval> {
+  const tables = ['invoice', 'client', 'subscription', 'payment', 'taxRate'] as const;
+
+  const tick = async (): Promise<void> => {
+    try {
+      // (1) Boundary violations recorded by the API guard.
+      const since = new Date(Date.now() - TENANCY_SCAN_LOOKBACK_MS);
+      const violations = await db.auditLog.findMany({
+        where: { event: 'tenant.isolation_violation', createdAt: { gte: since } },
+        select: { id: true, tenantId: true, detail: true },
+      });
+      if (violations.length > 0) {
+        await alert.alert(
+          'Tenant isolation violation detected at API boundary',
+          `${violations.length} cross-tenant response(s) detected in the last ${
+            Math.round(TENANCY_SCAN_LOOKBACK_MS / 60000)
+          } min. Review audit events (event=tenant.isolation_violation). First: ${JSON.stringify(
+            violations[0],
+          )}`,
+        );
+      }
+
+      // (2) Data-integrity: any row whose tenantId is not a real tenant.
+      const tenants = await db.tenant.findMany({ select: { id: true } });
+      const tenantIds = tenants.map((t) => t.id);
+      const foreign: Record<string, number> = {};
+      for (const table of tables) {
+        const rows = await (db as any)[table].findMany({
+          where: { tenantId: { notIn: tenantIds } },
+          select: { id: true },
+        });
+        if (rows.length > 0) foreign[table] = rows.length;
+      }
+      const foreignCount = Object.values(foreign).reduce((a, b) => a + b, 0);
+      if (foreignCount > 0) {
+        await alert.alert(
+          'Tenant isolation violation: foreign tenantId rows',
+          `${foreignCount} row(s) belong to a tenantId that does not exist: ${JSON.stringify(
+            foreign,
+          )}. Possible data corruption or injection — investigate immediately.`,
+        );
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error('[worker] tenancy scan failed', err);
+      await alert.alert('Tenant isolation scan failed', message);
+    }
+  };
+  void tick();
+  return setInterval(tick, intervalMs);
 }
 
 const isMain =
   process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1];
 if (isMain) {
+  // C1 — both Stripe (money) and Resend (email) must be live in prod, or we refuse
+  // to start rather than silently run a "no human" loop that never delivers/collects.
+  startupAssertLive();
+  // C5 — alerts route to ALERT_EMAIL when set, otherwise console-only.
+  const alerts = createAlertSink(email, process.env.ALERT_EMAIL);
+  startOverdueScheduler();
+  startRecurringScheduler(prisma, RECURRING_MS, alerts);
+  startReconciliationScheduler(paymentProvider, prisma, RECONCILE_MS, alerts);
+  startTenancyScanner(prisma, TENANCY_SCAN_MS, alerts);
   loop().catch((err) => {
     console.error(err);
     process.exit(1);
