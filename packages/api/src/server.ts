@@ -20,6 +20,7 @@ import { auditRoutes } from './routes/audit.js';
 import { subscriptionRoutes } from './routes/subscriptions.js';
 import { stripeWebhookRoutes } from './routes/webhooks.js';
 import { adminRoutes } from './routes/admin.js';
+import { registerIsolationGuard } from './plugins/isolation.js';
 import './types.js';
 
 export async function buildServer(): Promise<FastifyInstance> {
@@ -52,6 +53,11 @@ export async function buildServer(): Promise<FastifyInstance> {
   });
   // T4 — manual overdue-sweep trigger (NO auth in MVP; see route file).
   await app.register(adminRoutes({ prisma }), { prefix: '/admin' });
+
+  // C6 — tenant isolation guard: inspects every tenant-scoped JSON response for
+  // cross-tenant entities (see plugins/isolation.ts). Registered last so it wraps
+  // all routes above.
+  registerIsolationGuard(app);
 
   return app;
 }

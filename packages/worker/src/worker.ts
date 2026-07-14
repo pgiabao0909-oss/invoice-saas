@@ -201,6 +201,8 @@ export function startOverdueScheduler(
 const RECURRING_MS = Number(process.env.RECURRING_MS ?? 60_000);
 const RECONCILE_MS = Number(process.env.RECONCILE_MS ?? 300_000);
 const RECONCILE_LOOKBACK_MS = Number(process.env.RECONCILE_LOOKBACK_MS ?? 24 * 60 * 60 * 1000);
+const TENANCY_SCAN_MS = Number(process.env.TENANCY_SCAN_MS ?? 300_000);
+const TENANCY_SCAN_LOOKBACK_MS = Number(process.env.TENANCY_SCAN_LOOKBACK_MS ?? 10 * 60 * 1000);
 
 /**
  * C2 — hands-off recurring billing (guide §C2). Runs `runDueSubscriptions` on a
@@ -269,6 +271,74 @@ export function startReconciliationScheduler(
   return setInterval(tick, intervalMs);
 }
 
+/**
+ * C6 — tenant isolation scanner (the scheduled half of the isolation guard, ADR 0001).
+ *
+ * Runs two independent checks and raises a C5 alert on any anomaly:
+ *   1. API-boundary violations: reads recent `tenant.isolation_violation` audit events
+ *      (emitted by the API's onSend guard) — a route leaked cross-tenant data.
+ *   2. Data-integrity: scans every tenant-scoped table for rows whose `tenantId` is not
+ *      a real tenant (orphaned / injected / mis-tenant'd). Even if app scoping is correct,
+ *      this catches corruption the app layer can't.
+ *
+ * Neither check mutates data; it only observes and alerts, so it is safe to run often.
+ */
+export function startTenancyScanner(
+  db: typeof prisma = prisma,
+  intervalMs: number = TENANCY_SCAN_MS,
+  alert: AlertSink = consoleAlertSink,
+): ReturnType<typeof setInterval> {
+  const tables = ['invoice', 'client', 'subscription', 'payment', 'taxRate'] as const;
+
+  const tick = async (): Promise<void> => {
+    try {
+      // (1) Boundary violations recorded by the API guard.
+      const since = new Date(Date.now() - TENANCY_SCAN_LOOKBACK_MS);
+      const violations = await db.auditLog.findMany({
+        where: { event: 'tenant.isolation_violation', createdAt: { gte: since } },
+        select: { id: true, tenantId: true, detail: true },
+      });
+      if (violations.length > 0) {
+        await alert.alert(
+          'Tenant isolation violation detected at API boundary',
+          `${violations.length} cross-tenant response(s) detected in the last ${
+            Math.round(TENANCY_SCAN_LOOKBACK_MS / 60000)
+          } min. Review audit events (event=tenant.isolation_violation). First: ${JSON.stringify(
+            violations[0],
+          )}`,
+        );
+      }
+
+      // (2) Data-integrity: any row whose tenantId is not a real tenant.
+      const tenants = await db.tenant.findMany({ select: { id: true } });
+      const tenantIds = tenants.map((t) => t.id);
+      const foreign: Record<string, number> = {};
+      for (const table of tables) {
+        const rows = await (db as any)[table].findMany({
+          where: { tenantId: { notIn: tenantIds } },
+          select: { id: true },
+        });
+        if (rows.length > 0) foreign[table] = rows.length;
+      }
+      const foreignCount = Object.values(foreign).reduce((a, b) => a + b, 0);
+      if (foreignCount > 0) {
+        await alert.alert(
+          'Tenant isolation violation: foreign tenantId rows',
+          `${foreignCount} row(s) belong to a tenantId that does not exist: ${JSON.stringify(
+            foreign,
+          )}. Possible data corruption or injection — investigate immediately.`,
+        );
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error('[worker] tenancy scan failed', err);
+      await alert.alert('Tenant isolation scan failed', message);
+    }
+  };
+  void tick();
+  return setInterval(tick, intervalMs);
+}
+
 const isMain =
   process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1];
 if (isMain) {
@@ -280,6 +350,7 @@ if (isMain) {
   startOverdueScheduler();
   startRecurringScheduler(prisma, RECURRING_MS, alerts);
   startReconciliationScheduler(paymentProvider, prisma, RECONCILE_MS, alerts);
+  startTenancyScanner(prisma, TENANCY_SCAN_MS, alerts);
   loop().catch((err) => {
     console.error(err);
     process.exit(1);

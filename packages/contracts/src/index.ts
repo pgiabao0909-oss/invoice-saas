@@ -428,6 +428,7 @@ export const AUDIT_EVENTS = {
   REMINDER_SENT: 'invoice.reminder_sent',
   INVOICE_OVERDUE: 'invoice.overdue',
   PAYMENT_RECORDED: 'invoice.paid',
+  TENANT_ISOLATION_VIOLATION: 'tenant.isolation_violation',
 } as const;
 export type AuditEvent = (typeof AUDIT_EVENTS)[keyof typeof AUDIT_EVENTS];
 
