@@ -1,0 +1,63 @@
+# Production stack for invoice-saas.
+# App (api + worker + web) built from the Dockerfile; Postgres as a service.
+# nginx + Let's Encrypt run on the HOST (see deploy/nginx + scripts/provision-ubuntu.sh)
+# and proxy :80/:443 -> 127.0.0.1:3000 (web) and :3001 (api).
+
+services:
+  postgres:
+    image: postgres:16
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-invoicesaas}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    restart: always
+    command: npm run start -w @invoice-saas/api
+    env_file: .env
+    environment:
+      PORT: 3001
+      # Container-internal Postgres hostname is the service name `postgres`.
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-invoicesaas}?schema=public
+    ports:
+      - "127.0.0.1:3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  worker:
+    build: .
+    restart: always
+    command: npm run start -w @invoice-saas/worker
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-invoicesaas}?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build: .
+    restart: always
+    command: npm run start -w @invoice-saas/web
+    env_file: .env
+    environment:
+      # Web proxies /api/* to the api service on the docker network.
+      API_BASE: http://api:3001
+      HOSTNAME: 0.0.0.0
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
