@@ -16,12 +16,16 @@
 # so a single public hostname -> web:3000 serves the whole app, API included.
 #
 # Set CLOUDFLARE_TUNNEL_TOKEN in .env (copied from the dashboard when you create the
-# tunnel — see DEPLOY.md "Path B").
+# tunnel — see DEPLOY.md "Path B"). The token is passed to cloudflared via its native
+# TUNNEL_TOKEN env var; if it is empty, `docker compose up` fails immediately with a
+# clear message instead of the connector restart-looping.
 
 services:
   cloudflared:
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
-    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN:?Set CLOUDFLARE_TUNNEL_TOKEN in .env — Cloudflare Zero Trust -> Networks -> Tunnels -> your tunnel -> connector token (starts with eyJ)}
     depends_on:
       - web
