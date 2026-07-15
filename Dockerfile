@@ -7,7 +7,9 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Install from lockfile for reproducible builds.
-COPY package.json package-lock.json ./
+# tsconfig.base.json is required: every workspace tsconfig extends ../../tsconfig.base.json,
+# and without it tsc loses moduleResolution/module/target/esModuleInterop and the build fails.
+COPY package.json package-lock.json tsconfig.base.json ./
 COPY packages ./packages
 
 RUN npm ci
