@@ -1,10 +1,18 @@
 # invoice-saas — production image (monorepo, npm workspaces)
 # Builds api + worker + web in one image; each Compose service runs a different
-# workspace via `npm run start -w @invoice-saas/<pkg>` (node dist/<pkg>.js / next start).
+# workspace via `npm run start -w @invoice-saas/<pkg>`.
 
-FROM node:20-alpine
+# Debian-based (glibc), NOT alpine: Prisma's schema/query engine loads libssl
+# cleanly on Debian (auto-detects debian-openssl-3.0.x). On alpine (musl) it fails
+# with "Could not parse schema engine response" / libssl detection warnings.
+FROM node:20-slim
 
 WORKDIR /app
+
+# Prisma needs OpenSSL present at build (generate/db push) and runtime (queries).
+RUN apt-get update -y \
+    && apt-get install -y --no-install-recommends openssl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install from lockfile for reproducible builds.
 # tsconfig.base.json is required: every workspace tsconfig extends ../../tsconfig.base.json,
