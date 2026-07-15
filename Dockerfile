@@ -25,6 +25,12 @@ RUN npm ci
 # Generate the Prisma client and build every workspace (api/worker tsc + web next build).
 RUN npm run prisma:generate
 ENV NEXT_TELEMETRY_DISABLED=1
+# Next.js evaluates next.config.mjs rewrites() at BUILD time and bakes the /api/*
+# proxy destination into the build. It must therefore be set here (not just at
+# runtime) to the api service's URL on the compose network — otherwise it defaults
+# to http://localhost:3001 and the web container proxies to itself (ECONNREFUSED).
+ARG API_BASE=http://api:3001
+ENV API_BASE=$API_BASE
 RUN npm run build
 
 # Drop dev dependencies to shrink the runtime image (tsx, vitest, types are not needed at runtime).
