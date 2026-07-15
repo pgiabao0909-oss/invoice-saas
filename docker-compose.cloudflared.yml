@@ -1,0 +1,27 @@
+# Cloudflare Tunnel overlay for invoice-saas.
+#
+# Use this INSTEAD of nginx + Let's Encrypt when the host has no public IP (a home
+# PC, a WSL2 box, a NAT'd VM). Cloudflare terminates TLS at its edge and cloudflared
+# holds an OUTBOUND-only connection to Cloudflare — no inbound ports, no port
+# forwarding, no certbot.
+#
+# Bring the stack up with BOTH files (base + this overlay):
+#   docker compose -f docker-compose.prod.yml -f docker-compose.cloudflared.yml up -d --build
+#
+# Because cloudflared joins the same Compose network, the tunnel's Public Hostname
+# in the Cloudflare Zero Trust dashboard should point at the SERVICE NAME, not
+# localhost:
+#   Service (in dashboard):  http://web:3000
+# The web container proxies /api/* to the api container internally (Next.js rewrite),
+# so a single public hostname -> web:3000 serves the whole app, API included.
+#
+# Set CLOUDFLARE_TUNNEL_TOKEN in .env (copied from the dashboard when you create the
+# tunnel — see DEPLOY.md "Path B").
+
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - web

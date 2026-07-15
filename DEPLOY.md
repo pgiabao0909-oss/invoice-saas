@@ -25,6 +25,100 @@ domain. It is the customer-facing companion to `scripts/provision-ubuntu.sh` and
 nginx terminates TLS and proxies. The API routes live at the root (no `/api` prefix);
 nginx strips `/api` before forwarding, matching the web app's own same-origin rewrite.
 
+> **Two deploy paths.** Sections 0–8 cover **Path A** (a public-IP host with
+> nginx + Let's Encrypt). If your Ubuntu box has **no public IP** — a home PC, a
+> WSL2 install, a NAT'd VM — use **Path B: Cloudflare Tunnel** (see the section right
+> below). Path B needs no public IP, no port-forwarding, and no certbot.
+
+---
+
+## Path B — Local Ubuntu + Cloudflare Tunnel (free, no public IP)
+
+Best when you want to run invoice-saas on your own machine (WSL2 or a VM from the
+Ubuntu ISO) and still serve it at `https://yourdomain` for a client. Cloudflare
+terminates TLS at its edge; a `cloudflared` container holds an outbound-only tunnel.
+
+```
+   Browser ──https──► Cloudflare edge ──tunnel──► cloudflared (container)
+                                                       │ http://web:3000
+              Docker Compose (prod.yml + cloudflared.yml)
+                    ├── cloudflared  (outbound tunnel; no open ports)
+                    ├── web    (Next.js; proxies /api/* -> api:3001 internally)
+                    ├── api / worker / postgres
+```
+
+### B0. Prerequisites
+- Your **domain must use Cloudflare DNS** (free): add the site at dash.cloudflare.com
+  and switch your registrar's nameservers to the two Cloudflare gives you. Wait until
+  the zone shows **Active**.
+- **Ubuntu with Docker** on your PC. Two options:
+  - **WSL2 (fastest, recommended):** in Windows PowerShell (admin):
+    `wsl --install -d Ubuntu-24.04` then reboot / open "Ubuntu". You get an Ubuntu
+    shell without a VM. (Your `.iso` files are the alternative — see B0-alt.)
+  - **VM from your ISO (alternative):** install `D:\ubuntu-26.04-live-server-amd64.iso`
+    in VirtualBox/Hyper-V, then continue the same steps inside it.
+- Install Docker Engine inside Ubuntu/WSL2 (free, no Docker Desktop needed):
+  ```bash
+  curl -fsSL https://get.docker.com | sudo sh
+  sudo usermod -aG docker $USER   # then close & reopen the shell
+  ```
+  (On WSL2, enable systemd once: put `[boot]\nsystemd=true` in `/etc/wsl.conf`, then
+  `wsl --shutdown` from Windows and reopen. Or just start Docker with
+  `sudo service docker start` each session.)
+
+### B1. Get the code (inside Ubuntu/WSL2)
+```bash
+git clone --branch master --single-branch \
+    https://github.com/pgiabao0909-oss/invoice-saas.git ~/invoice-saas
+cd ~/invoice-saas
+# (until master is updated, use: --branch worktree-invoice-ui-build)
+```
+
+### B2. Create the Cloudflare Tunnel + get its token
+1. Cloudflare dashboard → **Zero Trust** → **Networks** → **Tunnels** → **Create a
+   tunnel** → type **Cloudflared** → name it `invoice-saas`.
+2. On the "Install connector" screen, **copy the token** (the long string after
+   `--token` in the shown command). You do **not** run that command — our compose
+   file runs cloudflared for you.
+3. Still in the tunnel, add a **Public Hostname**:
+   - Subdomain/domain: your domain (e.g. `invoicing.example.com`)
+   - Type: **HTTP**, URL: **`web:3000`**  ← the compose service name, not localhost.
+4. Save. Cloudflare auto-creates the DNS record for that hostname.
+
+### B3. Configure `.env`
+```bash
+cp .env.example .env
+# generate a random admin token and set the tunnel token:
+sed -i "s/^ADMIN_API_TOKEN=.*/ADMIN_API_TOKEN=\"$(openssl rand -hex 32)\"/" .env
+nano .env    # paste CLOUDFLARE_TUNNEL_TOKEN="<the token from B2>"
+```
+Leave Stripe/Resend blank to start with the safe fakes.
+
+### B4. Launch (base compose + tunnel overlay)
+```bash
+docker compose -f docker-compose.prod.yml -f docker-compose.cloudflared.yml up -d --build
+
+# wait for postgres, then push the schema:
+docker compose -f docker-compose.prod.yml run --rm api npm run prisma:generate
+docker compose -f docker-compose.prod.yml run --rm api \
+    npx prisma db push --schema packages/db/prisma/schema.prisma --accept-data-loss
+```
+
+### B5. Verify
+- `docker compose -f docker-compose.prod.yml -f docker-compose.cloudflared.yml ps`
+  — all services Up, including `cloudflared`.
+- `docker compose logs -f cloudflared` — look for `Registered tunnel connection`.
+- Open **`https://<your-domain>/`** — the app, with a valid HTTPS padlock (Cloudflare).
+- Open `https://<your-domain>/isolation` and `https://<your-domain>/api/health`.
+
+### B6. Notes for Path B
+- **No certbot, no nginx, no open ports.** You can ignore Path A's
+  `scripts/provision-ubuntu.sh` and `deploy/nginx/`.
+- Your PC must be **on** for the client to reach the app. For always-on, use Path A on
+  a cloud VM instead.
+- Updates: `git pull` then re-run the B4 `up -d --build` line.
+- Keep `CLOUDFLARE_TUNNEL_TOKEN` secret (it's in `.env`, which is gitignored).
+
 ---
 
 ## 0. Prerequisites
