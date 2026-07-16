@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { Button } from '@/components/ui/Button';
+import { Card, CardBody } from '@/components/ui/Card';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
 
@@ -19,9 +21,15 @@ export default function ApiStatus() {
   }
 
   return (
-    <div>
-      <button onClick={check}>Check API health</button>
-      <pre>{status}</pre>
-    </div>
+    <Card>
+      <CardBody className="space-y-3">
+        <Button size="sm" onClick={check}>
+          Check API health
+        </Button>
+        <pre className="overflow-x-auto rounded-lg border border-surface-border bg-surface-bg p-3 text-xs text-slate-700">
+          {status}
+        </pre>
+      </CardBody>
+    </Card>
   );
 }

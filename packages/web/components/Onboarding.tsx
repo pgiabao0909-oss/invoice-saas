@@ -42,7 +42,7 @@ export function Onboarding() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-brand-gradient p-6">
+    <div className="flex min-h-screen items-center justify-center bg-brand-600 p-6">
       <Card className="w-full max-w-md">
         <div className="p-6">
           <div className="text-sm font-medium text-brand-600">Get started</div>
@@ -84,7 +84,7 @@ export function Onboarding() {
                 required
               />
             </Field>
-            {error ? <p className="text-sm text-rose-600">{error}</p> : null}
+            {error ? <p className="text-sm text-danger">{error}</p> : null}
             <Button type="submit" disabled={busy || !name} className="w-full">
               {busy ? 'Creating…' : 'Create workspace'}
             </Button>

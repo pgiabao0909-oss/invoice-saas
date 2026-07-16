@@ -47,7 +47,7 @@ export default function SubscriptionsPage() {
   if (!tenant) return null;
 
   return (
-    <div>
+    <div className="page-enter">
       <PageHeader
         title="Subscriptions"
         description="Recurring schedules that auto-generate and send invoices — hands-off billing."
@@ -73,7 +73,7 @@ export default function SubscriptionsPage() {
           }
         />
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
+        <div className="overflow-hidden rounded-2xl border border-surface-border bg-white shadow-card">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-400">
@@ -96,7 +96,7 @@ export default function SubscriptionsPage() {
                     <td className="px-5 py-3 text-slate-600">{cadence(sub)}</td>
                     <td className="px-5 py-3">
                       {sub.active ? (
-                        <Badge className="bg-emerald-100 text-emerald-700">Active</Badge>
+                        <Badge className="bg-accent-100 text-accent-700">Active</Badge>
                       ) : (
                         <Badge className="bg-zinc-100 text-zinc-500">Paused</Badge>
                       )}

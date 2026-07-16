@@ -82,14 +82,14 @@ export default function NewInvoicePage() {
   const canSubmit = Boolean(clientId && dueDate && items.every((i) => i.description && i.quantity > 0));
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="page-enter mx-auto max-w-3xl">
       <PageHeader
         title="New invoice"
         description="Pick a client, add line items, and we'll compute the totals."
       />
 
       {error ? (
-        <p className="mb-4 rounded-xl bg-rose-50 px-4 py-2 text-sm text-rose-700">{error}</p>
+        <p className="mb-4 rounded-xl bg-red-50 px-4 py-2 text-sm text-danger">{error}</p>
       ) : null}
 
       <form onSubmit={submit} className="space-y-5">

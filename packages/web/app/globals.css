@@ -4,6 +4,33 @@
 
 :root {
   color-scheme: light;
+
+  /* ── Design-system palette (Master file) ───────────────────────────── */
+  --color-primary: #1e3a5f;
+  --color-on-primary: #ffffff;
+  --color-secondary: #2563eb;
+  --color-accent: #059669;
+  --color-background: #f8fafc;
+  --color-foreground: #0f172a;
+  --color-muted: #f1f3f5;
+  --color-border: #e4e7eb;
+  --color-destructive: #dc2626;
+  --color-ring: #1e3a5f;
+
+  /* ── Spacing scale (Density 5/10 — Standard) ───────────────────────── */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+  --space-3xl: 4rem;
+
+  /* ── Shadow depths (Soft UI Evolution) ─────────────────────────────── */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15);
 }
 
 html,
@@ -12,15 +39,60 @@ body {
 }
 
 body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Calmer focus ring across interactive elements. */
+/* Top-level + section titles use Calistoga for editorial warmth.
+   Small card/modal headers stay in Inter for legibility. */
+h1,
+h2 {
+  font-family: 'Calistoga', ui-serif, Georgia, serif;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+/* Calmer, navy focus ring across interactive elements (a11y). */
 *:focus-visible {
-  @apply outline-none ring-2 ring-brand-500/50 ring-offset-1 ring-offset-white;
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-background), 0 0 0 4px var(--color-ring);
+  border-radius: 6px;
 }
 
-/* Tabular figures for money/numbers in tables. */
+/* Tabular figures for money/numbers in tables and totals. */
 .nums {
   font-variant-numeric: tabular-nums;
+}
+
+/* Page-enter micro-interaction (Motion: tasteful, not immersive). */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-enter {
+  animation: page-enter 280ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* Respect users who prefer reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .page-enter {
+    animation: none;
+  }
 }

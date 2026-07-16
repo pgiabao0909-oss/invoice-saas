@@ -97,14 +97,14 @@ export default function NewSubscriptionPage() {
   );
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="page-enter mx-auto max-w-3xl">
       <PageHeader
         title="New subscription"
         description="Recurring billing schedule — we'll auto-generate and send an invoice every period."
       />
 
       {error ? (
-        <p className="mb-4 rounded-xl bg-rose-50 px-4 py-2 text-sm text-rose-700">{error}</p>
+        <p className="mb-4 rounded-xl bg-red-50 px-4 py-2 text-sm text-danger">{error}</p>
       ) : null}
 
       <form onSubmit={submit} className="space-y-5">

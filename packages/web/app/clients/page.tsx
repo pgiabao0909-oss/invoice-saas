@@ -50,7 +50,7 @@ export default function ClientsPage() {
   if (!tenant) return null;
 
   return (
-    <div>
+    <div className="page-enter">
       <PageHeader
         title="Clients"
         description="People and companies you bill."
@@ -62,7 +62,7 @@ export default function ClientsPage() {
       />
 
       {error ? (
-        <p className="mb-3 rounded-xl bg-rose-50 px-4 py-2 text-sm text-rose-700">{error}</p>
+        <p className="mb-3 rounded-xl bg-red-50 px-4 py-2 text-sm text-danger">{error}</p>
       ) : null}
 
       {loading ? (

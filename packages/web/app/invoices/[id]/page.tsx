@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Spinner } from '@/components/ui/Spinner';
 import { formatDate, formatMoney } from '@/lib/format';
+import { ArrowLeft, ExternalLink } from 'lucide-react';
 
 export default function InvoiceDetailPage({ params }: { params: { id: string } }) {
   const { tenant } = useTenant();
@@ -55,16 +56,20 @@ export default function InvoiceDetailPage({ params }: { params: { id: string } }
       </div>
     );
   if (error || !inv)
-    return <div className="py-20 text-center text-rose-600">{error ?? 'Not found'}</div>;
+    return <div className="py-20 text-center text-danger">{error ?? 'Not found'}</div>;
 
   const currency = inv.currency;
   const brand = tenant.branding;
   const balance = inv.totals.totalMinor - inv.amountPaidMinor;
 
   return (
-    <div>
-      <Link href="/invoices" className="text-sm text-slate-500 hover:text-slate-700">
-        ← Invoices
+    <div className="page-enter">
+      <Link
+        href="/invoices"
+        className="inline-flex items-center gap-1 text-sm text-slate-500 transition-colors hover:text-brand-600"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Invoices
       </Link>
 
       <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
@@ -92,14 +97,14 @@ export default function InvoiceDetailPage({ params }: { params: { id: string } }
       </div>
 
       {error ? (
-        <p className="mt-3 rounded-xl bg-rose-50 px-4 py-2 text-sm text-rose-700">{error}</p>
+        <p className="mt-3 rounded-xl bg-red-50 px-4 py-2 text-sm text-danger">{error}</p>
       ) : null}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <Card>
             <div className="overflow-hidden rounded-2xl">
-              <div className="px-5 py-4" style={{ background: brand?.primaryColor ?? '#4F46E5' }}>
+              <div className="px-5 py-4" style={{ background: brand?.primaryColor ?? '#1E3A5F' }}>
                 <div className="flex items-center justify-between text-white">
                   <span className="text-sm font-semibold">
                     {brand?.displayName ?? tenant.name}
@@ -116,7 +121,7 @@ export default function InvoiceDetailPage({ params }: { params: { id: string } }
                   </div>
                   <div className="text-right">
                     <p className="text-xs uppercase tracking-wide text-slate-400">Amount due</p>
-                    <p className="nums text-xl font-semibold text-slate-900">
+                    <p className="nums font-mono text-xl font-semibold text-slate-900">
                       {formatMoney(inv.totals.totalMinor, currency)}
                     </p>
                   </div>
@@ -196,9 +201,10 @@ export default function InvoiceDetailPage({ params }: { params: { id: string } }
                   href={inv.paymentLink}
                   target="_blank"
                   rel="noreferrer"
-                  className="block pt-2 text-brand-600 hover:underline"
+                  className="inline-flex items-center gap-1 pt-2 text-brand-600 transition-colors hover:text-brand-700"
                 >
-                  Open payment link ↗
+                  Open payment link
+                  <ExternalLink className="h-3.5 w-3.5" />
                 </a>
               ) : null}
             </CardBody>

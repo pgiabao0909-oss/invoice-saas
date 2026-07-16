@@ -13,23 +13,23 @@ export function KpiCard({
   label: string;
   value: ReactNode;
   hint?: string;
-  /** Accent the card (e.g. overdue uses rose). */
-  accent?: 'default' | 'rose' | 'emerald' | 'brand';
+  /** Accent the card (e.g. overdue uses danger). */
+  accent?: 'default' | 'danger' | 'emerald' | 'brand';
   action?: ReactNode;
   /** Optional link target — makes the card's label + value clickable. */
   href?: string;
 }) {
   const accentRing =
-    accent === 'rose'
-      ? 'ring-1 ring-rose-100'
+    accent === 'danger'
+      ? 'ring-1 ring-red-100'
       : accent === 'emerald'
-        ? 'ring-1 ring-emerald-100'
+        ? 'ring-1 ring-accent-100'
         : accent === 'brand'
           ? 'ring-1 ring-brand-100'
           : '';
 
   const labelEl = href ? (
-    <Link href={href} className="text-sm font-medium text-slate-500 hover:text-brand-600">
+    <Link href={href} className="text-sm font-medium text-slate-500 transition-colors hover:text-brand-600">
       {label}
     </Link>
   ) : (
@@ -44,7 +44,7 @@ export function KpiCard({
   );
 
   return (
-    <div className={clsx('rounded-2xl border border-slate-200/70 bg-white p-5 shadow-card', accentRing)}>
+    <div className={clsx('rounded-2xl border border-surface-border bg-white p-5 shadow-card transition-shadow duration-200 ease-soft hover:shadow-card-hover', accentRing)}>
       <div className="flex items-start justify-between">
         {labelEl}
         {action}

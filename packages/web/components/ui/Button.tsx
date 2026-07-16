@@ -7,10 +7,13 @@ type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 type Size = 'sm' | 'md';
 
 const variants: Record<Variant, string> = {
-  primary: 'bg-brand-gradient text-white shadow-sm hover:opacity-90',
-  secondary: 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50',
+  // CTA — paid-green accent, soft shadow, calm lift on hover (no layout-shift scale).
+  primary:
+    'bg-accent-600 text-white shadow-md hover:bg-accent-700 hover:-translate-y-px active:translate-y-0',
+  // Outlined navy — matches .btn-secondary spec.
+  secondary: 'bg-white text-brand-600 border border-brand-600 hover:bg-brand-50',
   ghost: 'text-slate-600 hover:bg-slate-100',
-  danger: 'bg-rose-600 text-white hover:bg-rose-700',
+  danger: 'bg-danger text-white shadow-sm hover:bg-red-700',
 };
 
 const sizes: Record<Size, string> = {
@@ -27,7 +30,8 @@ export function Button({
   return (
     <button
       className={clsx(
-        'inline-flex items-center justify-center gap-2 rounded-xl font-medium transition disabled:cursor-not-allowed disabled:opacity-50',
+        'inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg font-semibold transition duration-200 ease-soft',
+        'disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:translate-y-0',
         variants[variant],
         sizes[size],
         className,

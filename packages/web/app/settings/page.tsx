@@ -7,12 +7,13 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input, Field } from '@/components/ui/Field';
+import { Check } from 'lucide-react';
 
 export default function SettingsPage() {
   const { tenant, refresh } = useTenant();
   const [displayName, setDisplayName] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
-  const [primaryColor, setPrimaryColor] = useState('#4F46E5');
+  const [primaryColor, setPrimaryColor] = useState('#1E3A5F');
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -20,7 +21,7 @@ export default function SettingsPage() {
     if (tenant) {
       setDisplayName(tenant.branding?.displayName ?? tenant.name);
       setLogoUrl(tenant.branding?.logoUrl ?? '');
-      setPrimaryColor(tenant.branding?.primaryColor ?? '#4F46E5');
+      setPrimaryColor(tenant.branding?.primaryColor ?? '#1E3A5F');
     }
   }, [tenant]);
 
@@ -42,7 +43,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="page-enter mx-auto max-w-2xl">
       <PageHeader title="Settings" description="Branding for your invoices and emails." />
 
       <form onSubmit={save}>
@@ -67,7 +68,7 @@ export default function SettingsPage() {
                   type="color"
                   value={primaryColor}
                   onChange={(e) => setPrimaryColor(e.target.value)}
-                  className="h-10 w-12 rounded-lg border border-slate-200"
+                  className="h-10 w-12 rounded-lg border border-surface-border"
                 />
                 <Input
                   value={primaryColor}
@@ -96,7 +97,12 @@ export default function SettingsPage() {
           <Button type="submit" disabled={busy}>
             {busy ? 'Saving…' : 'Save changes'}
           </Button>
-          {saved ? <span className="text-sm text-emerald-600">Saved ✓</span> : null}
+          {saved ? (
+            <span className="inline-flex items-center gap-1 text-sm text-accent-700">
+              <Check className="h-4 w-4" />
+              Saved
+            </span>
+          ) : null}
         </div>
       </form>
     </div>
