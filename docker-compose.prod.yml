@@ -1,0 +1,69 @@
+# Production stack for invoice-saas.
+# The single app image (api + worker + web) is BUILT ONCE by the `api` service and
+# shared by `worker`/`web` via the same `image:` tag — this avoids three parallel
+# `next build` runs, which exhaust WSL2/Docker RAM and fail the build. Postgres is a
+# separate service. Host nginx or a Cloudflare Tunnel sits in front (see deploy/nginx
+# + scripts/provision-ubuntu.sh, or docker-compose.cloudflared.yml).
+
+services:
+  postgres:
+    image: postgres:16
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-invoicesaas}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # api owns the image build; worker/web reuse the `invoice-saas-app:latest` tag.
+  api:
+    build: .
+    image: invoice-saas-app:latest
+    restart: always
+    command: npm run start -w @invoice-saas/api
+    env_file: .env
+    environment:
+      PORT: 3001
+      # Container-internal Postgres hostname is the service name `postgres`.
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-invoicesaas}?schema=public
+    ports:
+      - "127.0.0.1:3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  worker:
+    image: invoice-saas-app:latest
+    restart: always
+    command: npm run start -w @invoice-saas/worker
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-invoicesaas}?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+      api:
+        condition: service_started
+
+  web:
+    image: invoice-saas-app:latest
+    restart: always
+    command: npm run start -w @invoice-saas/web
+    env_file: .env
+    environment:
+      # Web proxies /api/* to the api service on the docker network.
+      API_BASE: http://api:3001
+      HOSTNAME: 0.0.0.0
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:

@@ -9,7 +9,7 @@ export function Topbar() {
   const { tenants, slug, switchTenant } = useTenant();
 
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-200 bg-white/80 px-6 py-3 backdrop-blur">
+    <header className="sticky top-0 z-30 flex items-center justify-between border-b border-surface-border bg-white/80 px-6 py-3 backdrop-blur">
       <div className="flex items-center gap-3">
         <span className="hidden text-sm text-slate-400 sm:inline">Workspace</span>
         {tenants.length > 0 ? (

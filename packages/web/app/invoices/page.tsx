@@ -59,7 +59,7 @@ export default function InvoicesPage() {
   if (!tenant) return null;
 
   return (
-    <div>
+    <div className="page-enter">
       <PageHeader
         title="Invoices"
         description="Create, send, and track invoices."

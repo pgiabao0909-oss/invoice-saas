@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Spinner } from '@/components/ui/Spinner';
+import { Check, ShieldCheck } from 'lucide-react';
 
 interface ViolationDetail {
   route?: string;
@@ -53,7 +54,7 @@ export default function IsolationPage() {
   const foreignEntries = status ? Object.entries(status.foreignRows) : [];
 
   return (
-    <div>
+    <div className="page-enter">
       <PageHeader
         title="Tenant Isolation"
         description="System-wide cross-tenant leak detection (C6). Reads the audit trail and scans every tenant-scoped table."
@@ -65,14 +66,14 @@ export default function IsolationPage() {
       />
 
       {error ? (
-        <p className="mb-4 rounded-xl bg-rose-50 px-4 py-2 text-sm text-rose-700">{error}</p>
+        <p className="mb-4 rounded-xl bg-red-50 px-4 py-2 text-sm text-danger">{error}</p>
       ) : null}
 
       {!status ? (
         <EmptyState
           title="No scan loaded yet"
           description="Load the isolation status with your admin token to see boundary violations and foreign-row scan results."
-          icon="⛨"
+          icon={<ShieldCheck className="h-8 w-8 text-brand-600" />}
           action={<Button onClick={load}>{loading ? 'Checking…' : 'Load status'}</Button>}
         />
       ) : (
@@ -81,19 +82,19 @@ export default function IsolationPage() {
             <KpiCard
               label="Posture"
               value={status.healthy ? 'Healthy' : 'ALERT'}
-              accent={status.healthy ? 'emerald' : 'rose'}
+              accent={status.healthy ? 'emerald' : 'danger'}
               hint={status.healthy ? 'No leaks detected' : 'Action required'}
             />
             <KpiCard
               label="Boundary violations"
               value={status.violations.length}
-              accent={status.violations.length > 0 ? 'rose' : 'default'}
+              accent={status.violations.length > 0 ? 'danger' : 'default'}
               hint="last 10 min"
             />
             <KpiCard
               label="Foreign rows"
               value={foreignTotal}
-              accent={foreignTotal > 0 ? 'rose' : 'default'}
+              accent={foreignTotal > 0 ? 'danger' : 'default'}
               hint="rows with unknown tenantId"
             />
             <KpiCard label="Tenants" value={status.tenants} hint="known tenantIds" />
@@ -106,7 +107,7 @@ export default function IsolationPage() {
                 description={`No boundary violations and no foreign tenantId rows as of ${formatTime(
                   status.checkedAt,
                 )}.`}
-                icon="✓"
+                icon={<Check className="h-8 w-8 text-accent-600" />}
               />
             </div>
           ) : (
@@ -117,7 +118,7 @@ export default function IsolationPage() {
                     <h3 className="text-sm font-semibold text-slate-700">
                       Recent boundary violations
                     </h3>
-                    <Badge className="bg-rose-100 text-rose-700">
+                    <Badge className="bg-red-100 text-danger">
                       {status.violations.length}
                     </Badge>
                   </CardHeader>
@@ -138,7 +139,7 @@ export default function IsolationPage() {
                             </span>
                             <Badge>caller: {detail.expectedTenantId ?? v.tenantId}</Badge>
                             {leaked.map((t) => (
-                              <Badge key={t} className="bg-rose-100 text-rose-700">
+                              <Badge key={t} className="bg-red-100 text-danger">
                                 leaked: {t}
                               </Badge>
                             ))}
@@ -157,7 +158,7 @@ export default function IsolationPage() {
                     <h3 className="text-sm font-semibold text-slate-700">
                       Foreign tenantId rows
                     </h3>
-                    <Badge className="bg-rose-100 text-rose-700">{foreignTotal}</Badge>
+                    <Badge className="bg-red-100 text-danger">{foreignTotal}</Badge>
                   </CardHeader>
                   <CardBody>
                     <ul className="divide-y divide-slate-100">
@@ -167,7 +168,7 @@ export default function IsolationPage() {
                           className="flex items-center justify-between py-2 text-sm"
                         >
                           <span className="font-mono text-slate-700">{table}</span>
-                          <span className="text-rose-700">{count} row(s)</span>
+                          <span className="text-danger">{count} row(s)</span>
                         </li>
                       ))}
                     </ul>

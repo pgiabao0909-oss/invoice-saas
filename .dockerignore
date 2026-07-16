@@ -1,0 +1,13 @@
+# Build context exclusions — these are regenerated inside the image.
+node_modules
+**/node_modules
+**/dist
+**/.next
+.git
+.gitignore
+.claude
+.claude/**
+.env
+*.log
+.next
+coverage

@@ -62,7 +62,7 @@ export default function DashboardPage() {
   if (!tenant) return null;
 
   return (
-    <div>
+    <div className="page-enter">
       <PageHeader
         title={`Welcome back, ${tenant.branding?.displayName ?? tenant.name}`}
         description="Your invoicing at a glance."
@@ -75,7 +75,7 @@ export default function DashboardPage() {
         <KpiCard
           label="Overdue"
           value={stats?.overdue ?? 0}
-          accent="rose"
+          accent="danger"
           href="/invoices?status=overdue"
           action={
             <Button size="sm" variant="ghost" onClick={runSweep} disabled={sweeping}>

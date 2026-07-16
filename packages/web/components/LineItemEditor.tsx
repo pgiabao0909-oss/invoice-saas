@@ -4,6 +4,7 @@ import type { LineItem } from '@invoice-saas/contracts';
 import { Input } from './ui/Field';
 import { MoneyInput } from './ui/Field';
 import { Button } from './ui/Button';
+import { X } from 'lucide-react';
 
 export function LineItemEditor({
   items,
@@ -50,9 +51,10 @@ export function LineItemEditor({
           <button
             type="button"
             onClick={() => remove(i)}
-            className="col-span-3 text-sm text-rose-500 hover:underline sm:col-span-1"
+            aria-label="Remove line item"
+            className="col-span-3 flex items-center justify-center rounded-lg p-2 text-slate-400 transition-colors duration-200 hover:bg-red-50 hover:text-danger sm:col-span-1"
           >
-            ✕
+            <X className="h-4 w-4" />
           </button>
         </div>
       ))}

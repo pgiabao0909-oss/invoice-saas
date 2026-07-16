@@ -16,7 +16,7 @@ export function InvoiceTable({
 }) {
   if (invoices.length === 0) return null;
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
+    <div className="overflow-hidden rounded-2xl border border-surface-border bg-white shadow-card">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-400">
