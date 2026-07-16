@@ -90,7 +90,7 @@ export default function ClientsPage() {
                   <th className="px-5 py-3">Tax ID</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50">
+              <tbody className="stagger divide-y divide-slate-50">
                 {clients.map((c) => (
                   <tr key={c.id} className="hover:bg-slate-50/60">
                     <td className="px-5 py-3 font-medium text-slate-800">{c.legalName}</td>

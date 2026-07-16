@@ -27,7 +27,7 @@ export function InvoiceTable({
             <th className="px-5 py-3 text-right font-medium">Total</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-50">
+        <tbody className="stagger divide-y divide-slate-50">
           {invoices.map((inv) => (
             <tr key={inv.id} className="hover:bg-slate-50/60">
               <td className="px-5 py-3">

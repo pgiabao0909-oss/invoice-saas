@@ -68,7 +68,7 @@ export default function DashboardPage() {
         description="Your invoicing at a glance."
       />
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="stagger grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         <KpiCard label="Draft" value={stats?.draft ?? 0} href="/invoices?status=draft" />
         <KpiCard label="Sent" value={stats?.sent ?? 0} href="/invoices?status=sent" />
         <KpiCard label="Paid" value={stats?.paid ?? 0} accent="emerald" href="/invoices?status=paid" />

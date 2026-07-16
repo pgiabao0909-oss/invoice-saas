@@ -84,7 +84,7 @@ export default function SubscriptionsPage() {
                 <th className="px-5 py-3 text-right font-medium">Amount</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
+            <tbody className="stagger divide-y divide-slate-50">
               {subs.map((sub) => {
                 const totals = computeTotals(sub.lineItems, [], sub.discount);
                 return (
