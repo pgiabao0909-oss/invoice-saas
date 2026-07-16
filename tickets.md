@@ -4,21 +4,22 @@ End-to-end vertical slices that take the product from zero to "create → PDF �
 Stripe pay → auto-remind". Built on `CONTEXT.md` (domain glossary) and `.scratch/mvp/PRD.md`.
 Stack is deferred (planning-only); tickets specify behaviour, not implementation.
 
-Work the **frontier**: any ticket whose blockers are all done. Graph:
-`T0 → T1 → T2 → {T3, T4}`. Top-to-bottom for the linear chain; T3 and T4 unblock
-together once T2 lands.
+> **Status (updated 2026-07-16):** the MVP slice is **complete**. All five tickets
+> (T0–T4) are implemented, verified, and committed; the web UI exists and has since been
+> restyled to the `design-system/invoice-saas/MASTER.md` spec. This file is now **historical
+> context** — for current state trust `git log`, not the per-ticket checkboxes below
+> (several were left unticked even though the work shipped). See also C1–C6 hardening and
+> `DEPLOY.md` (production deploy).
 
-**Triage (via `/triage`):** all five tickets are fully-specified tracer bullets, so each
-is labeled `ready-for-agent` and filed as an individual issue under
-`.scratch/mvp/issues/NN-<slug>.md`. Frontier = `01-data-model-multitenant` (no blockers).
+Graph (all landed): `T0 → T1 → T2 → {T3, T4}`.
 
 | Ticket | Issue file | Status |
 | ------ | ---------- | ------ |
-| T0 | `.scratch/mvp/issues/01-data-model-multitenant.md` | ready-for-agent |
-| T1 | `.scratch/mvp/issues/02-create-draft-invoice.md` | ready-for-agent |
+| T0 | `.scratch/mvp/issues/01-data-model-multitenant.md` | resolved |
+| T1 | `.scratch/mvp/issues/02-create-draft-invoice.md` | resolved |
 | T2 | `.scratch/mvp/issues/03-pdf-email-send.md` | resolved |
-| T3 | `.scratch/mvp/issues/04-stripe-payment-webhook.md` | ready-for-agent |
-| T4 | `.scratch/mvp/issues/05-overdue-reminders.md` | ready-for-agent |
+| T3 | `.scratch/mvp/issues/04-stripe-payment-webhook.md` | resolved |
+| T4 | `.scratch/mvp/issues/05-overdue-reminders.md` | resolved |
 
 ## T0 — Data model & multi-tenant foundation
 

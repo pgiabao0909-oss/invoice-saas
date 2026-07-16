@@ -1,5 +1,9 @@
 # Running the Invoice SaaS (API + Web UI)
 
+> **UI:** the web app now follows the design system in `design-system/invoice-saas/MASTER.md`
+> (navy `#1E3A5F` primary + green `#059669` CTA, Calistoga/Inter/JetBrains Mono fonts, Lucide
+> icons). Page-level rules live in `design-system/pages/`.
+
 This walks through running the backend API and the Next.js web UI locally against a
 real Postgres. The web app talks to the API through a **same-origin rewrite** (the
 browser only ever hits `http://localhost:3000`; Next proxies `/api/*` → `http://localhost:3001`),
@@ -39,11 +43,12 @@ Then open `.env` and set at least:
 
 ```bash
 npm run prisma:generate
-npx prisma db push -w @invoice-saas/db
+npx prisma db push --schema packages/db/prisma/schema.prisma --accept-data-loss
 ```
 
-(`prisma db push` creates the tables from `packages/db/prisma/schema.prisma`. Use
-`prisma migrate dev` instead if you want versioned migrations.)
+> The `--schema` path is required — `prisma db push -w @invoice-saas/db` does **not** work.
+> (`prisma db push` creates the tables from `packages/db/prisma/schema.prisma`. Use
+> `prisma migrate dev` instead if you want versioned migrations.)
 
 ## 5. Run the API and the web app
 
