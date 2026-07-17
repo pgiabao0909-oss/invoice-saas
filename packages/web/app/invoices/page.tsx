@@ -71,7 +71,7 @@ export default function InvoicesPage() {
       />
 
       <div className="mb-4 flex items-center gap-2">
-        <span className="text-sm text-slate-500">Filter</span>
+        <span className="text-sm text-slate-500 dark:text-slate-400">Filter</span>
         <Select
           value={status}
           onChange={(e) => setStatus(e.target.value as '' | InvoiceStatus)}

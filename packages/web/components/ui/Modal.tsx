@@ -31,7 +31,7 @@ export function Modal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
-        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm dark:bg-black/60"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -40,24 +40,24 @@ export function Modal({
         aria-modal="true"
         aria-label={title}
         className={clsx(
-          'relative z-10 w-full max-w-lg rounded-2xl border border-surface-border bg-white shadow-xl',
+          'relative z-10 w-full max-w-lg rounded-2xl border border-surface-border bg-surface-bg shadow-xl',
           'page-enter',
         )}
       >
-        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-          <h2 className="text-base text-slate-900">{title}</h2>
+        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4 dark:border-surface-border">
+          <h2 className="text-base text-slate-900 dark:text-surface-fg">{title}</h2>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="cursor-pointer rounded-lg p-1 text-slate-400 transition-colors duration-200 hover:bg-slate-100 hover:text-slate-600"
+            className="cursor-pointer rounded-lg p-1 text-slate-400 transition-colors duration-200 hover:bg-slate-100 hover:text-slate-600 dark:text-slate-500 dark:hover:bg-surface-muted dark:hover:text-slate-300"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
         <div className="px-5 py-4">{children}</div>
         {footer ? (
-          <div className="flex justify-end gap-2 border-t border-slate-100 px-5 py-4">{footer}</div>
+          <div className="flex justify-end gap-2 border-t border-slate-100 px-5 py-4 dark:border-surface-border">{footer}</div>
         ) : null}
       </div>
     </div>

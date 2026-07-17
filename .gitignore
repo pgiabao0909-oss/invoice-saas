@@ -39,3 +39,6 @@ npm-debug.log*
 
 # TypeScript incremental build info
 *.tsbuildinfo
+
+# Generated code-graph output (graphify CLI)
+graphify-out/

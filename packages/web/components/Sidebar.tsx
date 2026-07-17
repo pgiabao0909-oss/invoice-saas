@@ -21,12 +21,12 @@ export function Sidebar() {
   const { tenant } = useTenant();
 
   return (
-    <aside className="hidden w-60 shrink-0 flex-col border-r border-surface-border bg-white md:flex">
+    <aside className="hidden w-60 shrink-0 flex-col border-r border-surface-border bg-surface-bg md:flex">
       <div className="flex items-center gap-2 px-5 py-5">
         <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 text-sm font-bold text-white">
           {(tenant?.branding?.displayName ?? tenant?.name ?? 'I').charAt(0).toUpperCase()}
         </div>
-        <div className="truncate text-sm font-semibold text-slate-900">
+        <div className="truncate text-sm font-semibold text-slate-900 dark:text-surface-fg">
           {tenant?.branding?.displayName ?? tenant?.name ?? 'Invoice SaaS'}
         </div>
       </div>
@@ -40,20 +40,20 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               className={clsx(
-                'flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors duration-200 ease-soft',
+                'group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors duration-200 ease-soft',
                 active
                   ? 'bg-brand-600 text-white shadow-sm'
-                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
+                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-surface-muted dark:hover:text-surface-fg',
               )}
             >
-              <Icon className="h-[18px] w-[18px]" strokeWidth={2} />
+              <Icon className="h-[18px] w-[18px] transition-transform duration-200 ease-soft group-hover:scale-110" strokeWidth={2} />
               {item.label}
             </Link>
           );
         })}
       </nav>
 
-      <div className="px-5 py-4 text-xs text-slate-400">Invoice SaaS · hybrid tenancy</div>
+      <div className="px-5 py-4 text-xs text-slate-400 dark:text-slate-500">Invoice SaaS · hybrid tenancy</div>
     </aside>
   );
 }

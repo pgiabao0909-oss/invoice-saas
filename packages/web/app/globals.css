@@ -17,6 +17,15 @@
   --color-destructive: #dc2626;
   --color-ring: #1e3a5f;
 
+  /* ── Surface tokens (RGB channels for Tailwind alpha support) ─────────
+     Flipped under `.dark` in globals.css. `surface-card` = cards/inputs,
+     `surface-fg` = primary text on surfaces, `surface-muted` = hover/insets,
+     `surface-border` = dividers. */
+  --surface-card: 255 255 255;
+  --surface-fg: 15 23 42;
+  --surface-muted: 241 243 245;
+  --surface-border: 228 231 235;
+
   /* ── Spacing scale (Density 5/10 — Standard) ───────────────────────── */
   --space-xs: 0.25rem;
   --space-sm: 0.5rem;
@@ -70,7 +79,7 @@ h2 {
 @keyframes page-enter {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -79,8 +88,35 @@ h2 {
 }
 
 .page-enter {
-  animation: page-enter 280ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: page-enter 360ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+
+/* Staggered entrance for grids and lists — children rise in sequence.
+   Apply `.stagger` to a grid/table-body; direct children animate in order. */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stagger > * {
+  animation: fade-in-up 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 60ms; }
+.stagger > *:nth-child(3) { animation-delay: 120ms; }
+.stagger > *:nth-child(4) { animation-delay: 180ms; }
+.stagger > *:nth-child(5) { animation-delay: 240ms; }
+.stagger > *:nth-child(6) { animation-delay: 300ms; }
+.stagger > *:nth-child(7) { animation-delay: 360ms; }
+.stagger > *:nth-child(8) { animation-delay: 420ms; }
+.stagger > *:nth-child(9) { animation-delay: 480ms; }
+.stagger > *:nth-child(10) { animation-delay: 540ms; }
 
 /* Respect users who prefer reduced motion. */
 @media (prefers-reduced-motion: reduce) {
@@ -95,4 +131,26 @@ h2 {
   .page-enter {
     animation: none;
   }
+}
+
+/* ── Dark theme ─────────────────────────────────────────────────────────
+   "Soft UI Evolution" after dark — a deep navy-charcoal canvas with lighter
+   navy surfaces. Flipped by toggling `.dark` on <html> (see ThemeProvider +
+   the no-flash script in layout.tsx). */
+.dark {
+  color-scheme: dark;
+
+  /* Page canvas + foreground. */
+  --color-background: #0b1120;
+  --color-foreground: #e6edf6;
+  --color-muted: #18233a;
+  --color-border: #243049;
+  /* Lift the focus ring so it reads on the dark canvas. */
+  --color-ring: #41618f;
+
+  /* Surfaces follow the same navy ramp (RGB channels for Tailwind alpha). */
+  --surface-card: 18 29 51; /* #121d33 */
+  --surface-fg: 230 237 246; /* #e6edf6 */
+  --surface-muted: 24 35 58; /* #18233a */
+  --surface-border: 36 48 73; /* #243049 */
 }

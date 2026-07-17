@@ -62,7 +62,7 @@ export default function ClientsPage() {
       />
 
       {error ? (
-        <p className="mb-3 rounded-xl bg-red-50 px-4 py-2 text-sm text-danger">{error}</p>
+        <p className="mb-3 rounded-xl bg-red-50 px-4 py-2 text-sm text-danger dark:bg-red-950/40">{error}</p>
       ) : null}
 
       {loading ? (
@@ -84,18 +84,18 @@ export default function ClientsPage() {
           <div className="overflow-hidden rounded-2xl">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-400">
+                <tr className="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-400 dark:border-surface-border dark:text-slate-500">
                   <th className="px-5 py-3">Name</th>
                   <th className="px-5 py-3">Email</th>
                   <th className="px-5 py-3">Tax ID</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50">
+              <tbody className="stagger divide-y divide-slate-50 dark:divide-surface-border">
                 {clients.map((c) => (
-                  <tr key={c.id} className="hover:bg-slate-50/60">
-                    <td className="px-5 py-3 font-medium text-slate-800">{c.legalName}</td>
-                    <td className="px-5 py-3 text-slate-500">{c.email}</td>
-                    <td className="px-5 py-3 text-slate-400">{c.taxIdentifier ?? '—'}</td>
+                  <tr key={c.id} className="hover:bg-slate-50/60 dark:hover:bg-surface-muted/60">
+                    <td className="px-5 py-3 font-medium text-slate-800 dark:text-slate-200">{c.legalName}</td>
+                    <td className="px-5 py-3 text-slate-500 dark:text-slate-400">{c.email}</td>
+                    <td className="px-5 py-3 text-slate-400 dark:text-slate-500">{c.taxIdentifier ?? '—'}</td>
                   </tr>
                 ))}
               </tbody>

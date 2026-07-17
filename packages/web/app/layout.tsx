@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import './globals.css';
 import { TenantProvider } from '@/components/TenantProvider';
+import { ThemeProvider } from '@/components/ThemeProvider';
 import { AppShell } from '@/components/AppShell';
 
 export const metadata = {
@@ -18,11 +19,18 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Calistoga:ital@0;1&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
         />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('theme');var d=t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches);var r=document.documentElement;if(d)r.classList.add('dark');r.style.colorScheme=d?'dark':'light';}catch(e){}})();`,
+          }}
+        />
       </head>
       <body>
-        <TenantProvider>
-          <AppShell>{children}</AppShell>
-        </TenantProvider>
+        <ThemeProvider>
+          <TenantProvider>
+            <AppShell>{children}</AppShell>
+          </TenantProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

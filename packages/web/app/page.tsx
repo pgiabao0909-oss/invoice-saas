@@ -68,7 +68,7 @@ export default function DashboardPage() {
         description="Your invoicing at a glance."
       />
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="stagger grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         <KpiCard label="Draft" value={stats?.draft ?? 0} href="/invoices?status=draft" />
         <KpiCard label="Sent" value={stats?.sent ?? 0} href="/invoices?status=sent" />
         <KpiCard label="Paid" value={stats?.paid ?? 0} accent="emerald" href="/invoices?status=paid" />
@@ -92,11 +92,11 @@ export default function DashboardPage() {
       </div>
 
       {sweepMsg ? (
-        <p className="mt-3 rounded-xl bg-slate-100 px-4 py-2 text-sm text-slate-600">{sweepMsg}</p>
+        <p className="mt-3 rounded-xl bg-slate-100 px-4 py-2 text-sm text-slate-600 dark:bg-surface-muted dark:text-slate-300">{sweepMsg}</p>
       ) : null}
 
       <div className="mt-8">
-        <h2 className="mb-3 text-sm font-semibold text-slate-700">Recent invoices</h2>
+        <h2 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-300">Recent invoices</h2>
         {loading ? (
           <div className="py-10 text-center">
             <Spinner className="h-5 w-5" />

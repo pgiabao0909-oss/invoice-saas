@@ -8,6 +8,9 @@ import type { Config } from 'tailwindcss';
  */
 const config: Config = {
   content: ['./app/**/*.{ts,tsx}', './components/**/*.{ts,tsx}'],
+  // Class-based dark mode — toggled via `.dark` on <html> (see ThemeProvider + the
+  // no-flash script in layout.tsx).
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
@@ -24,24 +27,28 @@ const config: Config = {
           800: '#12243b',
           900: '#0c1828',
         },
-        // CTA accent — paid-green.
+        // CTA accent — paid-green. 300/950 are the dark-mode text/badge shades.
         accent: {
           50: '#ecfdf5',
           100: '#d1fae5',
           200: '#a7f3d0',
+          300: '#6ee7b7', // light emerald (dark-mode text)
           500: '#10b981',
           600: '#059669', // CTA
           700: '#047857',
+          900: '#065f46', // deep emerald (dark-mode ring)
+          950: '#053b2c', // deep emerald (dark-mode badge bg)
         },
         // Semantic status colors (invoice lifecycle).
         success: '#059669',
         danger: '#DC2626',
-        // Neutral surface tokens (mirror the design-system palette).
+        // Neutral surface tokens — RGB channels so Tailwind alpha modifiers
+        // (e.g. bg-surface-bg/80) work. Flipped under `.dark` in globals.css.
         surface: {
-          bg: '#F8FAFC',
-          fg: '#0F172A',
-          muted: '#F1F3F5',
-          border: '#E4E7EB',
+          bg: 'rgb(var(--surface-card) / <alpha-value>)',
+          fg: 'rgb(var(--surface-fg) / <alpha-value>)',
+          muted: 'rgb(var(--surface-muted) / <alpha-value>)',
+          border: 'rgb(var(--surface-border) / <alpha-value>)',
         },
       },
       backgroundImage: {

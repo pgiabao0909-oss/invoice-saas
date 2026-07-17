@@ -1,17 +1,20 @@
 'use client';
 
 import Link from 'next/link';
+import { Moon, Sun } from 'lucide-react';
 import { useTenant } from './TenantProvider';
+import { useTheme } from './ThemeProvider';
 import { Button } from './ui/Button';
 import { Select } from './ui/Select';
 
 export function Topbar() {
   const { tenants, slug, switchTenant } = useTenant();
+  const { theme, toggleTheme } = useTheme();
 
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between border-b border-surface-border bg-white/80 px-6 py-3 backdrop-blur">
+    <header className="sticky top-0 z-30 flex items-center justify-between border-b border-surface-border bg-surface-bg/80 px-6 py-3 backdrop-blur">
       <div className="flex items-center gap-3">
-        <span className="hidden text-sm text-slate-400 sm:inline">Workspace</span>
+        <span className="hidden text-sm text-slate-400 dark:text-slate-500 sm:inline">Workspace</span>
         {tenants.length > 0 ? (
           <Select
             value={slug ?? ''}
@@ -27,9 +30,20 @@ export function Topbar() {
         ) : null}
       </div>
 
-      <Link href="/invoices/new">
-        <Button size="sm">+ New invoice</Button>
-      </Link>
+      <div className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+          onClick={toggleTheme}
+          className="px-2.5"
+        >
+          {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        </Button>
+        <Link href="/invoices/new">
+          <Button size="sm">+ New invoice</Button>
+        </Link>
+      </div>
     </header>
   );
 }
