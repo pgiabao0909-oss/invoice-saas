@@ -73,10 +73,10 @@ export default function SubscriptionsPage() {
           }
         />
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-surface-border bg-white shadow-card">
+        <div className="overflow-hidden rounded-2xl border border-surface-border bg-surface-bg shadow-card">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-400">
+              <tr className="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-400 dark:border-surface-border dark:text-slate-500">
                 <th className="px-5 py-3 font-medium">Client</th>
                 <th className="px-5 py-3 font-medium">Cadence</th>
                 <th className="px-5 py-3 font-medium">Status</th>
@@ -84,25 +84,25 @@ export default function SubscriptionsPage() {
                 <th className="px-5 py-3 text-right font-medium">Amount</th>
               </tr>
             </thead>
-            <tbody className="stagger divide-y divide-slate-50">
+            <tbody className="stagger divide-y divide-slate-50 dark:divide-surface-border">
               {subs.map((sub) => {
                 const totals = computeTotals(sub.lineItems, [], sub.discount);
                 return (
-                  <tr key={sub.id} className="hover:bg-slate-50/60">
+                  <tr key={sub.id} className="hover:bg-slate-50/60 dark:hover:bg-surface-muted/60">
                     <td className="px-5 py-3">
-                      <div className="font-medium text-slate-900">{clientName(sub.clientId)}</div>
-                      <div className="text-xs text-slate-400">{sub.currency}</div>
+                      <div className="font-medium text-slate-900 dark:text-surface-fg">{clientName(sub.clientId)}</div>
+                      <div className="text-xs text-slate-400 dark:text-slate-500">{sub.currency}</div>
                     </td>
-                    <td className="px-5 py-3 text-slate-600">{cadence(sub)}</td>
+                    <td className="px-5 py-3 text-slate-600 dark:text-slate-400">{cadence(sub)}</td>
                     <td className="px-5 py-3">
                       {sub.active ? (
-                        <Badge className="bg-accent-100 text-accent-700">Active</Badge>
+                        <Badge className="bg-accent-100 text-accent-700 dark:bg-accent-950/40 dark:text-accent-300">Active</Badge>
                       ) : (
-                        <Badge className="bg-zinc-100 text-zinc-500">Paused</Badge>
+                        <Badge className="bg-zinc-100 text-zinc-500 dark:bg-zinc-800/60 dark:text-zinc-300">Paused</Badge>
                       )}
                     </td>
-                    <td className="px-5 py-3 text-slate-500">{formatDate(sub.anchorDate)}</td>
-                    <td className="px-5 py-3 text-right nums text-slate-900">
+                    <td className="px-5 py-3 text-slate-500 dark:text-slate-400">{formatDate(sub.anchorDate)}</td>
+                    <td className="px-5 py-3 text-right nums text-slate-900 dark:text-surface-fg">
                       {formatMoney(totals.totalMinor, sub.currency)}
                     </td>
                   </tr>

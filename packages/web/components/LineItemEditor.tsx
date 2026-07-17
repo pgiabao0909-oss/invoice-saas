@@ -52,7 +52,7 @@ export function LineItemEditor({
             type="button"
             onClick={() => remove(i)}
             aria-label="Remove line item"
-            className="col-span-3 flex items-center justify-center rounded-lg p-2 text-slate-400 transition-colors duration-200 hover:bg-red-50 hover:text-danger sm:col-span-1"
+            className="col-span-3 flex items-center justify-center rounded-lg p-2 text-slate-400 transition-colors duration-200 hover:bg-red-50 hover:text-danger dark:text-slate-500 dark:hover:bg-red-950/40 sm:col-span-1"
           >
             <X className="h-4 w-4" />
           </button>

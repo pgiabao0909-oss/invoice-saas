@@ -89,7 +89,7 @@ export default function NewInvoicePage() {
       />
 
       {error ? (
-        <p className="mb-4 rounded-xl bg-red-50 px-4 py-2 text-sm text-danger">{error}</p>
+        <p className="mb-4 rounded-xl bg-red-50 px-4 py-2 text-sm text-danger dark:bg-red-950/40">{error}</p>
       ) : null}
 
       <form onSubmit={submit} className="space-y-5">
@@ -134,7 +134,7 @@ export default function NewInvoicePage() {
 
         <Card>
           <CardBody className="space-y-3">
-            <h3 className="text-sm font-semibold text-slate-700">Line items</h3>
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Line items</h3>
             <LineItemEditor items={items} onChange={setItems} currency={currency} />
           </CardBody>
         </Card>
@@ -148,22 +148,22 @@ export default function NewInvoicePage() {
                 onChangeMinor={setDiscountMinor}
               />
             </Field>
-            <div className="space-y-1 border-t border-slate-100 pt-4 text-sm">
+            <div className="space-y-1 border-t border-slate-100 pt-4 text-sm dark:border-surface-border">
               <div className="flex items-center justify-between">
-                <span className="text-slate-500">Subtotal</span>
-                <span className="nums text-slate-800">{formatMoney(totals.subtotalMinor, currency)}</span>
+                <span className="text-slate-500 dark:text-slate-400">Subtotal</span>
+                <span className="nums text-slate-800 dark:text-slate-200">{formatMoney(totals.subtotalMinor, currency)}</span>
               </div>
               {totals.discountMinor > 0 ? (
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-500">Discount</span>
-                  <span className="nums text-slate-800">
+                  <span className="text-slate-500 dark:text-slate-400">Discount</span>
+                  <span className="nums text-slate-800 dark:text-slate-200">
                     - {formatMoney(totals.discountMinor, currency)}
                   </span>
                 </div>
               ) : null}
               <div className="flex items-center justify-between pt-1">
                 <span className="text-sm font-medium text-slate-700">Total</span>
-                <span className="nums text-lg font-semibold text-slate-900">
+                <span className="nums text-lg font-semibold text-slate-900 dark:text-surface-fg">
                   {formatMoney(totals.totalMinor, currency)}
                 </span>
               </div>

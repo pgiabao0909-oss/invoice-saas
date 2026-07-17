@@ -11,8 +11,8 @@ const variants: Record<Variant, string> = {
   primary:
     'bg-accent-600 text-white shadow-md hover:bg-accent-700 hover:-translate-y-px active:translate-y-0',
   // Outlined navy — matches .btn-secondary spec.
-  secondary: 'bg-white text-brand-600 border border-brand-600 hover:bg-brand-50',
-  ghost: 'text-slate-600 hover:bg-slate-100',
+  secondary: 'bg-surface-bg text-brand-600 border border-brand-600 hover:bg-brand-50 dark:border-brand-500 dark:hover:bg-brand-900/40',
+  ghost: 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-surface-muted',
   danger: 'bg-danger text-white shadow-sm hover:bg-red-700',
 };
 

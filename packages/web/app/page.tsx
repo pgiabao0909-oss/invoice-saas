@@ -92,11 +92,11 @@ export default function DashboardPage() {
       </div>
 
       {sweepMsg ? (
-        <p className="mt-3 rounded-xl bg-slate-100 px-4 py-2 text-sm text-slate-600">{sweepMsg}</p>
+        <p className="mt-3 rounded-xl bg-slate-100 px-4 py-2 text-sm text-slate-600 dark:bg-surface-muted dark:text-slate-300">{sweepMsg}</p>
       ) : null}
 
       <div className="mt-8">
-        <h2 className="mb-3 text-sm font-semibold text-slate-700">Recent invoices</h2>
+        <h2 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-300">Recent invoices</h2>
         {loading ? (
           <div className="py-10 text-center">
             <Spinner className="h-5 w-5" />

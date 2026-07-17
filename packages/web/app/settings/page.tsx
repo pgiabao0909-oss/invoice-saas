@@ -49,7 +49,7 @@ export default function SettingsPage() {
       <form onSubmit={save}>
         <Card>
           <CardHeader>
-            <h3 className="text-sm font-semibold text-slate-700">Branding</h3>
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Branding</h3>
           </CardHeader>
           <CardBody className="space-y-4">
             <Field label="Display name">
@@ -78,8 +78,8 @@ export default function SettingsPage() {
               </div>
             </Field>
 
-            <div className="rounded-xl border border-slate-100 p-4">
-              <p className="text-xs uppercase tracking-wide text-slate-400">Live preview</p>
+            <div className="rounded-xl border border-slate-100 p-4 dark:border-surface-border">
+              <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">Live preview</p>
               <div className="mt-2 flex items-center gap-3">
                 <div
                   className="flex h-9 w-9 items-center justify-center rounded-xl text-sm font-bold text-white"
@@ -87,7 +87,7 @@ export default function SettingsPage() {
                 >
                   {displayName.charAt(0).toUpperCase() || 'I'}
                 </div>
-                <span className="font-semibold text-slate-800">{displayName || tenant.name}</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200">{displayName || tenant.name}</span>
               </div>
             </div>
           </CardBody>
@@ -98,7 +98,7 @@ export default function SettingsPage() {
             {busy ? 'Saving…' : 'Save changes'}
           </Button>
           {saved ? (
-            <span className="inline-flex items-center gap-1 text-sm text-accent-700">
+            <span className="inline-flex items-center gap-1 text-sm text-accent-700 dark:text-accent-300">
               <Check className="h-4 w-4" />
               Saved
             </span>

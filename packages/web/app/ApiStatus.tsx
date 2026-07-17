@@ -26,7 +26,7 @@ export default function ApiStatus() {
         <Button size="sm" onClick={check}>
           Check API health
         </Button>
-        <pre className="overflow-x-auto rounded-lg border border-surface-border bg-surface-bg p-3 text-xs text-slate-700">
+        <pre className="overflow-x-auto rounded-lg border border-surface-border bg-surface-bg p-3 text-xs text-slate-700 dark:text-slate-300">
           {status}
         </pre>
       </CardBody>

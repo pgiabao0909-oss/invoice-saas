@@ -66,14 +66,14 @@ export default function IsolationPage() {
       />
 
       {error ? (
-        <p className="mb-4 rounded-xl bg-red-50 px-4 py-2 text-sm text-danger">{error}</p>
+        <p className="mb-4 rounded-xl bg-red-50 px-4 py-2 text-sm text-danger dark:bg-red-950/40">{error}</p>
       ) : null}
 
       {!status ? (
         <EmptyState
           title="No scan loaded yet"
           description="Load the isolation status with your admin token to see boundary violations and foreign-row scan results."
-          icon={<ShieldCheck className="h-8 w-8 text-brand-600" />}
+          icon={<ShieldCheck className="h-8 w-8 text-brand-600 dark:text-brand-300" />}
           action={<Button onClick={load}>{loading ? 'Checking…' : 'Load status'}</Button>}
         />
       ) : (
@@ -115,10 +115,10 @@ export default function IsolationPage() {
               {status.violations.length > 0 ? (
                 <Card>
                   <CardHeader>
-                    <h3 className="text-sm font-semibold text-slate-700">
+                    <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                       Recent boundary violations
                     </h3>
-                    <Badge className="bg-red-100 text-danger">
+                    <Badge className="bg-red-100 text-danger dark:bg-red-950/50">
                       {status.violations.length}
                     </Badge>
                   </CardHeader>
@@ -131,20 +131,20 @@ export default function IsolationPage() {
                       return (
                         <div
                           key={v.id}
-                          className="rounded-xl border border-slate-100 p-3 text-sm"
+                          className="rounded-xl border border-slate-100 p-3 text-sm dark:border-surface-border"
                         >
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-mono text-xs text-slate-700">
+                            <span className="font-mono text-xs text-slate-700 dark:text-slate-300">
                               {detail.method ?? '?'} {detail.route ?? '(unknown route)'}
                             </span>
                             <Badge>caller: {detail.expectedTenantId ?? v.tenantId}</Badge>
                             {leaked.map((t) => (
-                              <Badge key={t} className="bg-red-100 text-danger">
+                              <Badge key={t} className="bg-red-100 text-danger dark:bg-red-950/50">
                                 leaked: {t}
                               </Badge>
                             ))}
                           </div>
-                          <p className="mt-1 text-xs text-slate-400">{formatTime(v.createdAt)}</p>
+                          <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">{formatTime(v.createdAt)}</p>
                         </div>
                       );
                     })}
@@ -155,13 +155,13 @@ export default function IsolationPage() {
               {foreignEntries.length > 0 ? (
                 <Card>
                   <CardHeader>
-                    <h3 className="text-sm font-semibold text-slate-700">
+                    <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                       Foreign tenantId rows
                     </h3>
-                    <Badge className="bg-red-100 text-danger">{foreignTotal}</Badge>
+                    <Badge className="bg-red-100 text-danger dark:bg-red-950/50">{foreignTotal}</Badge>
                   </CardHeader>
                   <CardBody>
-                    <ul className="divide-y divide-slate-100">
+                    <ul className="divide-y divide-slate-100 dark:divide-surface-border">
                       {foreignEntries.map(([table, count]) => (
                         <li
                           key={table}

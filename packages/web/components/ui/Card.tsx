@@ -5,7 +5,7 @@ export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       className={clsx(
-        'rounded-2xl border border-surface-border bg-white shadow-card transition duration-200 ease-soft',
+        'rounded-2xl border border-surface-border bg-surface-bg shadow-card transition duration-200 ease-soft',
         'hover:-translate-y-0.5 hover:shadow-card-hover',
         className,
       )}
@@ -21,7 +21,7 @@ export function CardBody({ className, ...props }: HTMLAttributes<HTMLDivElement>
 export function CardHeader({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={clsx('flex items-center justify-between border-b border-slate-100 px-5 py-4', className)}
+      className={clsx('flex items-center justify-between border-b border-slate-100 px-5 py-4 dark:border-surface-border', className)}
       {...props}
     />
   );

@@ -45,15 +45,15 @@ export function Onboarding() {
     <div className="flex min-h-screen items-center justify-center bg-brand-600 p-6">
       <Card className="w-full max-w-md">
         <div className="p-6">
-          <div className="text-sm font-medium text-brand-600">Get started</div>
-          <h1 className="text-xl font-semibold text-slate-900">Create your workspace</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <div className="text-sm font-medium text-brand-600 dark:text-brand-300">Get started</div>
+          <h1 className="text-xl font-semibold text-slate-900 dark:text-surface-fg">Create your workspace</h1>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
             Workspaces keep invoices, clients, and branding isolated per tenant.
           </p>
 
           {tenants.length > 0 ? (
             <div className="mt-5">
-              <p className="mb-2 text-sm font-medium text-slate-700">
+              <p className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">
                 Or sign in to an existing workspace
               </p>
               <div className="flex flex-wrap gap-2">
@@ -63,7 +63,7 @@ export function Onboarding() {
                   </Button>
                 ))}
               </div>
-              <div className="my-5 border-t border-slate-100" />
+              <div className="my-5 border-t border-slate-100 dark:border-surface-border" />
             </div>
           ) : null}
 
