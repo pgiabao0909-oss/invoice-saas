@@ -5,41 +5,32 @@
 :root {
   color-scheme: light;
 
-  /* ── Design-system palette (Master file) ───────────────────────────── */
-  --color-primary: #1e3a5f;
+  /* ── Design-system palette: "Confident Indigo" ──────────────────────────── */
+  --color-primary: #0b1626;
   --color-on-primary: #ffffff;
-  --color-secondary: #2563eb;
-  --color-accent: #059669;
-  --color-background: #f8fafc;
+  --color-secondary: #41618f;
+  --color-accent: #059669; /* emerald — money / paid / success */
+  --color-cta: #4f46e5; /* indigo — interactive accent */
+  --color-background: #f7f8fb;
   --color-foreground: #0f172a;
   --color-muted: #f1f3f5;
-  --color-border: #e4e7eb;
-  --color-destructive: #dc2626;
-  --color-ring: #1e3a5f;
+  --color-border: #e6e9ef;
+  --color-destructive: #e11d48;
+  --color-ring: #4f46e5; /* indigo focus ring */
 
-  /* ── Surface tokens (RGB channels for Tailwind alpha support) ─────────
+  /* ── Surface tokens (RGB channels for Tailwind alpha support) ─────────────
      Flipped under `.dark` in globals.css. `surface-card` = cards/inputs,
      `surface-fg` = primary text on surfaces, `surface-muted` = hover/insets,
      `surface-border` = dividers. */
   --surface-card: 255 255 255;
   --surface-fg: 15 23 42;
   --surface-muted: 241 243 245;
-  --surface-border: 228 231 235;
+  --surface-border: 226 232 240;
 
-  /* ── Spacing scale (Density 5/10 — Standard) ───────────────────────── */
-  --space-xs: 0.25rem;
-  --space-sm: 0.5rem;
-  --space-md: 1rem;
-  --space-lg: 1.5rem;
-  --space-xl: 2rem;
-  --space-2xl: 3rem;
-  --space-3xl: 4rem;
-
-  /* ── Shadow depths (Soft UI Evolution) ─────────────────────────────── */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
-  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15);
+  --shadow-md: 0 4px 6px rgba(15, 23, 42, 0.1);
+  --shadow-lg: 0 10px 15px rgba(15, 23, 42, 0.1);
+  --shadow-xl: 0 20px 25px rgba(15, 23, 42, 0.15);
 }
 
 html,
@@ -50,32 +41,82 @@ body {
 body {
   background: var(--color-background);
   color: var(--color-foreground);
-  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* Top-level + section titles use Calistoga for editorial warmth.
-   Small card/modal headers stay in Inter for legibility. */
+/* Headings use Plus Jakarta Sans (weights carry the hierarchy). */
 h1,
-h2 {
-  font-family: 'Calistoga', ui-serif, Georgia, serif;
-  font-weight: 400;
-  letter-spacing: -0.01em;
+h2,
+h3 {
+  font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
-/* Calmer, navy focus ring across interactive elements (a11y). */
+/* Calmer, indigo focus ring across interactive elements (a11y). */
 *:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px var(--color-background), 0 0 0 4px var(--color-ring);
-  border-radius: 6px;
+  border-radius: 8px;
 }
 
 /* Tabular figures for money/numbers in tables and totals. */
 .nums {
   font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
 }
 
-/* Page-enter micro-interaction (Motion: tasteful, not immersive). */
+/* ── Playful utilities ─────────────────────────────────────────────────────── */
+.text-gradient {
+  background-image: linear-gradient(120deg, #4f46e5 0%, #7c3aed 50%, #059669 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.glass {
+  background: rgb(var(--surface-card) / 0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Skeleton shimmer for loading placeholders (>=1s operations). */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: rgb(var(--surface-muted) / 0.7);
+}
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.55), transparent);
+  animation: shimmer 1.4s infinite;
+}
+.dark .skeleton::after {
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.08), transparent);
+}
+
+/* Soft, tasteful scrollbar. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--surface-border)) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgb(var(--surface-border));
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+/* ── Motion (tasteful, not immersive) ─────────────────────────────────────── */
 @keyframes page-enter {
   from {
     opacity: 0;
@@ -86,13 +127,10 @@ h2 {
     transform: translateY(0);
   }
 }
-
 .page-enter {
-  animation: page-enter 360ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: page-enter 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-/* Staggered entrance for grids and lists — children rise in sequence.
-   Apply `.stagger` to a grid/table-body; direct children animate in order. */
 @keyframes fade-in-up {
   from {
     opacity: 0;
@@ -103,20 +141,25 @@ h2 {
     transform: translateY(0);
   }
 }
-
 .stagger > * {
   animation: fade-in-up 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .stagger > *:nth-child(1) { animation-delay: 0ms; }
-.stagger > *:nth-child(2) { animation-delay: 60ms; }
-.stagger > *:nth-child(3) { animation-delay: 120ms; }
-.stagger > *:nth-child(4) { animation-delay: 180ms; }
-.stagger > *:nth-child(5) { animation-delay: 240ms; }
-.stagger > *:nth-child(6) { animation-delay: 300ms; }
-.stagger > *:nth-child(7) { animation-delay: 360ms; }
-.stagger > *:nth-child(8) { animation-delay: 420ms; }
-.stagger > *:nth-child(9) { animation-delay: 480ms; }
-.stagger > *:nth-child(10) { animation-delay: 540ms; }
+.stagger > *:nth-child(2) { animation-delay: 50ms; }
+.stagger > *:nth-child(3) { animation-delay: 100ms; }
+.stagger > *:nth-child(4) { animation-delay: 150ms; }
+.stagger > *:nth-child(5) { animation-delay: 200ms; }
+.stagger > *:nth-child(6) { animation-delay: 250ms; }
+.stagger > *:nth-child(7) { animation-delay: 300ms; }
+.stagger > *:nth-child(8) { animation-delay: 350ms; }
+.stagger > *:nth-child(9) { animation-delay: 400ms; }
+.stagger > *:nth-child(10) { animation-delay: 450ms; }
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
 
 /* Respect users who prefer reduced motion. */
 @media (prefers-reduced-motion: reduce) {
@@ -131,25 +174,28 @@ h2 {
   .page-enter {
     animation: none;
   }
+  .stagger > * {
+    animation: none;
+  }
+  .skeleton::after {
+    animation: none;
+  }
 }
 
-/* ── Dark theme ─────────────────────────────────────────────────────────
-   "Soft UI Evolution" after dark — a deep navy-charcoal canvas with lighter
-   navy surfaces. Flipped by toggling `.dark` on <html> (see ThemeProvider +
-   the no-flash script in layout.tsx). */
+/* ── Dark theme ──────────────────────────────────────────────────────────────
+   "Confident Indigo" after dark — a deep navy-charcoal canvas with lighter navy
+   surfaces. Flipped by toggling `.dark` on <html> (see ThemeProvider + the
+   no-flash script in layout.tsx). */
 .dark {
   color-scheme: dark;
 
-  /* Page canvas + foreground. */
-  --color-background: #0b1120;
+  --color-background: #0a0f1c;
   --color-foreground: #e6edf6;
   --color-muted: #18233a;
   --color-border: #243049;
-  /* Lift the focus ring so it reads on the dark canvas. */
-  --color-ring: #41618f;
+  --color-ring: #818cf8; /* lighter indigo for dark canvas */
 
-  /* Surfaces follow the same navy ramp (RGB channels for Tailwind alpha). */
-  --surface-card: 18 29 51; /* #121d33 */
+  --surface-card: 17 26 45; /* #111a2d */
   --surface-fg: 230 237 246; /* #e6edf6 */
   --surface-muted: 24 35 58; /* #18233a */
   --surface-border: 36 48 73; /* #243049 */
