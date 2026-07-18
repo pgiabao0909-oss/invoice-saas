@@ -2,7 +2,7 @@ import { clsx } from 'clsx';
 import type { InputHTMLAttributes, TextareaHTMLAttributes, ReactNode } from 'react';
 
 const controlBase =
-  'w-full rounded-lg border border-surface-border bg-surface-bg px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-200 ease-soft focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-600/30 dark:text-surface-fg';
+  'w-full rounded-xl border border-surface-border bg-surface-bg px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-200 ease-soft focus:border-cta-600 focus:outline-none focus:ring-2 focus:ring-cta-600/30 dark:text-surface-fg';
 
 export function Label({
   children,
@@ -14,7 +14,10 @@ export function Label({
   className?: string;
 }) {
   return (
-    <label htmlFor={htmlFor} className={clsx('mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300', className)}>
+    <label
+      htmlFor={htmlFor}
+      className={clsx('mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300', className)}
+    >
       {children}
     </label>
   );
@@ -43,7 +46,7 @@ export function MoneyInput({
   const major = (valueMinor / 100).toString();
   return (
     <div className={clsx('relative', className)}>
-      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400 dark:text-slate-500">
+      <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-400 dark:text-slate-500">
         {currency}
       </span>
       <input
