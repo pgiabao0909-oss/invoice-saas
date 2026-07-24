@@ -23,7 +23,12 @@ export function Modal({
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prev;
+    };
   }, [open, onClose]);
 
   if (!open) return null;
@@ -41,11 +46,11 @@ export function Modal({
         aria-label={title}
         className={clsx(
           'relative z-10 w-full max-w-lg rounded-2xl border border-surface-border bg-surface-bg shadow-xl',
-          'page-enter',
+          'animate-scale-in',
         )}
       >
         <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4 dark:border-surface-border">
-          <h2 className="text-base text-slate-900 dark:text-surface-fg">{title}</h2>
+          <h2 className="text-base font-semibold text-slate-900 dark:text-surface-fg">{title}</h2>
           <button
             type="button"
             onClick={onClose}
@@ -57,7 +62,9 @@ export function Modal({
         </div>
         <div className="px-5 py-4">{children}</div>
         {footer ? (
-          <div className="flex justify-end gap-2 border-t border-slate-100 px-5 py-4 dark:border-surface-border">{footer}</div>
+          <div className="flex justify-end gap-2 border-t border-slate-100 px-5 py-4 dark:border-surface-border">
+            {footer}
+          </div>
         ) : null}
       </div>
     </div>

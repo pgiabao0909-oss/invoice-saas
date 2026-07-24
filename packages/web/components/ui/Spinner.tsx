@@ -1,10 +1,13 @@
 import { clsx } from 'clsx';
 
-export function Spinner({ className }: { className?: string }) {
+export function Spinner({ className, light }: { className?: string; light?: boolean }) {
   return (
     <span
       className={clsx(
-        'inline-block h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-brand-600 dark:border-slate-700',
+        'inline-block animate-spin rounded-full border-2 border-transparent',
+        light
+          ? 'border-white/40 border-t-white'
+          : 'border-slate-300 border-t-cta-600 dark:border-slate-700 dark:border-t-cta-400',
         className,
       )}
       role="status"
@@ -15,7 +18,7 @@ export function Spinner({ className }: { className?: string }) {
 
 export function FullScreenLoader() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-surface-muted">
+    <div className="flex min-h-screen items-center justify-center bg-[var(--color-background)] dark:bg-surface-muted">
       <Spinner className="h-6 w-6" />
     </div>
   );
