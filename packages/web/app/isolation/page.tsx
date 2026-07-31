@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { motion } from 'motion/react';
+import { ShieldCheck, Warning, Check, Database, Users, WarningCircle } from '@phosphor-icons/react';
 import { useTenant } from '@/components/TenantProvider';
 import { api } from '@/lib/api';
 import type { IsolationStatus } from '@invoice-saas/contracts';
@@ -11,7 +13,6 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Spinner } from '@/components/ui/Spinner';
-import { Check, ShieldCheck } from 'lucide-react';
 
 interface ViolationDetail {
   route?: string;
@@ -55,72 +56,96 @@ export default function IsolationPage() {
 
   return (
     <div className="page-enter">
-      <PageHeader
-        title="Tenant Isolation"
-        description="System-wide cross-tenant leak detection (C6). Reads the audit trail and scans every tenant-scoped table."
-        actions={
-          <Button onClick={load} disabled={loading}>
-            {loading ? 'Checking…' : status ? 'Refresh' : 'Load status'}
-          </Button>
-        }
-      />
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: [0.32, 0.72, 0, 1] }}
+      >
+        <PageHeader
+          title="Tenant Isolation"
+          description="System-wide cross-tenant leak detection (C6). Reads the audit trail and scans every tenant-scoped table."
+          actions={
+            <Button onClick={load} disabled={loading} trailingIcon={loading ? undefined : <ShieldCheck className="h-4 w-4" weight="bold" />}>
+              {loading ? 'Checking…' : status ? 'Refresh' : 'Load status'}
+            </Button>
+          }
+        />
+      </motion.div>
 
-      {error ? (
-        <p className="mb-4 rounded-xl bg-red-50 px-4 py-2 text-sm text-danger dark:bg-red-950/40">{error}</p>
-      ) : null}
+      {error && (
+        <motion.p
+          className="mb-6 rounded-xl bg-pastel-red-100 px-4 py-3 text-body text-pastel-red-600 dark:bg-pastel-red-900/30 dark:text-pastel-red-400"
+          role="alert"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          {error}
+        </motion.p>
+      )}
 
       {!status ? (
         <EmptyState
           title="No scan loaded yet"
           description="Load the isolation status with your admin token to see boundary violations and foreign-row scan results."
-          icon={<ShieldCheck className="h-8 w-8 text-brand-600 dark:text-brand-300" />}
-          action={<Button onClick={load}>{loading ? 'Checking…' : 'Load status'}</Button>}
+          action={<Button onClick={load} disabled={loading}>{loading ? 'Checking…' : 'Load status'}</Button>}
         />
       ) : (
         <>
-          <div className="stagger grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <motion.div
+            className="stagger grid grid-cols-2 gap-4 sm:grid-cols-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1, ease: [0.32, 0.72, 0, 1] }}
+          >
             <KpiCard
               label="Posture"
               value={status.healthy ? 'Healthy' : 'ALERT'}
-              accent={status.healthy ? 'emerald' : 'danger'}
+              accent={status.healthy ? 'success' : 'danger'}
               hint={status.healthy ? 'No leaks detected' : 'Action required'}
+              icon={status.healthy ? <ShieldCheck className="h-5 w-5" weight="bold" /> : <Warning className="h-5 w-5" weight="bold" />}
             />
             <KpiCard
               label="Boundary violations"
               value={status.violations.length}
               accent={status.violations.length > 0 ? 'danger' : 'default'}
               hint="last 10 min"
+              icon={<WarningCircle className="h-5 w-5" weight="regular" />}
             />
             <KpiCard
               label="Foreign rows"
               value={foreignTotal}
               accent={foreignTotal > 0 ? 'danger' : 'default'}
               hint="rows with unknown tenantId"
+              icon={<Database className="h-5 w-5" weight="regular" />}
             />
-            <KpiCard label="Tenants" value={status.tenants} hint="known tenantIds" />
-          </div>
+            <KpiCard label="Tenants" value={status.tenants} hint="known tenantIds" icon={<Users className="h-5 w-5" weight="regular" />} />
+          </motion.div>
 
           {status.healthy ? (
-            <div className="mt-8">
+            <motion.div
+              className="mt-8"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2, ease: [0.32, 0.72, 0, 1] }}
+            >
               <EmptyState
                 title="All clear"
-                description={`No boundary violations and no foreign tenantId rows as of ${formatTime(
-                  status.checkedAt,
-                )}.`}
-                icon={<Check className="h-8 w-8 text-accent-600" />}
+                description={`No boundary violations and no foreign tenantId rows as of ${formatTime(status.checkedAt)}.`}
+                icon={<Check className="h-8 w-8 text-pastel-green-600 dark:text-pastel-green-400" weight="bold" />}
               />
-            </div>
+            </motion.div>
           ) : (
-            <div className="mt-8 space-y-6">
+            <motion.div
+              className="mt-8 space-y-6"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2, ease: [0.32, 0.72, 0, 1] }}
+            >
               {status.violations.length > 0 ? (
-                <Card>
+                <Card variant="bezel">
                   <CardHeader>
-                    <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                      Recent boundary violations
-                    </h3>
-                    <Badge className="bg-red-100 text-danger dark:bg-red-950/50">
-                      {status.violations.length}
-                    </Badge>
+                    <h3 className="text-heading-sm font-heading text-[var(--color-fg)]">Recent boundary violations</h3>
+                    <Badge variant="red">{status.violations.length}</Badge>
                   </CardHeader>
                   <CardBody className="space-y-3">
                     {status.violations.map((v) => {
@@ -129,23 +154,24 @@ export default function IsolationPage() {
                         .map((x) => x.tenantId)
                         .filter(Boolean);
                       return (
-                        <div
+                        <motion.div
                           key={v.id}
-                          className="rounded-xl border border-slate-100 p-3 text-sm dark:border-surface-border"
+                          className="rounded-xl border border-[var(--color-border)] p-3"
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
                         >
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-mono text-xs text-slate-700 dark:text-slate-300">
+                            <span className="font-mono text-body-sm text-[var(--color-border-strong)]">
                               {detail.method ?? '?'} {detail.route ?? '(unknown route)'}
                             </span>
-                            <Badge>caller: {detail.expectedTenantId ?? v.tenantId}</Badge>
+                            <Badge variant="blue">caller: {detail.expectedTenantId ?? v.tenantId}</Badge>
                             {leaked.map((t) => (
-                              <Badge key={t} className="bg-red-100 text-danger dark:bg-red-950/50">
-                                leaked: {t}
-                              </Badge>
+                              <Badge key={t} variant="red">leaked: {t}</Badge>
                             ))}
                           </div>
-                          <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">{formatTime(v.createdAt)}</p>
-                        </div>
+                          <p className="mt-1 text-caption text-[var(--color-border-strong)]">{formatTime(v.createdAt)}</p>
+                        </motion.div>
                       );
                     })}
                   </CardBody>
@@ -153,36 +179,44 @@ export default function IsolationPage() {
               ) : null}
 
               {foreignEntries.length > 0 ? (
-                <Card>
+                <Card variant="bezel">
                   <CardHeader>
-                    <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                      Foreign tenantId rows
-                    </h3>
-                    <Badge className="bg-red-100 text-danger dark:bg-red-950/50">{foreignTotal}</Badge>
+                    <h3 className="text-heading-sm font-heading text-[var(--color-fg)]">Foreign tenantId rows</h3>
+                    <Badge variant="red">{foreignTotal}</Badge>
                   </CardHeader>
                   <CardBody>
-                    <ul className="divide-y divide-slate-100 dark:divide-surface-border">
+                    <ul className="divide-y divide-[var(--color-border)]">
                       {foreignEntries.map(([table, count]) => (
-                        <li
+                        <motion.li
                           key={table}
-                          className="flex items-center justify-between py-2 text-sm"
+                          className="flex items-center justify-between py-2 text-body"
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
                         >
-                          <span className="font-mono text-slate-700">{table}</span>
-                          <span className="text-danger">{count} row(s)</span>
-                        </li>
+                          <span className="font-mono text-[var(--color-fg)]">{table}</span>
+                          <span className="text-pastel-red-600 dark:text-pastel-red-400 font-medium">{count} row(s)</span>
+                        </motion.li>
                       ))}
                     </ul>
                   </CardBody>
                 </Card>
               ) : null}
-            </div>
+            </motion.div>
+          )}
+
+          {status && (
+            <motion.p
+              className="mt-6 text-caption text-[var(--color-border-strong)]"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+            >
+              Checked at {formatTime(status.checkedAt)}
+            </motion.p>
           )}
         </>
       )}
-
-      {status ? (
-        <p className="mt-6 text-xs text-slate-400">Checked at {formatTime(status.checkedAt)}</p>
-      ) : null}
     </div>
   );
 }

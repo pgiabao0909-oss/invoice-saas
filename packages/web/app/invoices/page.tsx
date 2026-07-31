@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { motion } from 'motion/react';
+import { Plus, FunnelSimple, CaretDown } from '@phosphor-icons/react';
 import { useTenant } from '@/components/TenantProvider';
 import { api } from '@/lib/api';
 import type { Client, Invoice, InvoiceStatus } from '@invoice-saas/contracts';
@@ -60,48 +62,81 @@ export default function InvoicesPage() {
 
   return (
     <div className="page-enter">
-      <PageHeader
-        title="Invoices"
-        description="Create, send, and track invoices."
-        actions={
-          <Link href="/invoices/new">
-            <Button size="sm">+ New invoice</Button>
-          </Link>
-        }
-      />
-
-      <div className="mb-4 flex items-center gap-2">
-        <span className="text-sm text-slate-500 dark:text-slate-400">Filter</span>
-        <Select
-          value={status}
-          onChange={(e) => setStatus(e.target.value as '' | InvoiceStatus)}
-          className="w-44 py-1.5"
-        >
-          {FILTERS.map((f) => (
-            <option key={f.value} value={f.value}>
-              {f.label}
-            </option>
-          ))}
-        </Select>
-      </div>
-
-      {loading ? (
-        <div className="py-10 text-center">
-          <Spinner className="h-5 w-5" />
+      {/* Editorial Split Layout */}
+      <motion.div
+        className="mb-8 grid gap-6 lg:grid-cols-[1fr_3fr]"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: [0.32, 0.72, 0, 1] }}
+      >
+        {/* Left: Editorial headline */}
+        <div className="flex flex-col justify-center">
+          <PageHeader
+            title="Invoices"
+            description="Create, send, and track invoices."
+            actions={
+              <Link href="/invoices/new">
+                <Button size="sm" trailingIcon={<Plus className="h-4 w-4" weight="bold" />}>
+                  New invoice
+                </Button>
+              </Link>
+            }
+          />
         </div>
-      ) : invoices.length === 0 ? (
-        <EmptyState
-          title="No invoices"
-          description="Nothing here yet. Create an invoice to get started."
-          action={
-            <Link href="/invoices/new">
-              <Button size="sm">New invoice</Button>
-            </Link>
-          }
-        />
-      ) : (
-        <InvoiceTable invoices={invoices} showClient clientName={clientName} />
-      )}
+
+        {/* Right: Filter + table */}
+        <div className="flex flex-col gap-4">
+          <motion.div
+            className="flex items-center gap-3"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.1, ease: [0.32, 0.72, 0, 1] }}
+          >
+            <Select
+              value={status}
+              onChange={(e) => setStatus(e.target.value as '' | InvoiceStatus)}
+              className="w-48"
+            >
+              {FILTERS.map((f) => (
+                <option key={f.value} value={f.value}>
+                  {f.label}
+                </option>
+              ))}
+            </Select>
+          </motion.div>
+
+          {loading ? (
+            <motion.div
+              className="py-10 text-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+            >
+              <Spinner className="h-5 w-5 mx-auto" />
+            </motion.div>
+          ) : invoices.length === 0 ? (
+            <EmptyState
+              title="No invoices"
+              description="Nothing here yet. Create an invoice to get started."
+              action={
+                <Link href="/invoices/new">
+                  <Button size="sm" trailingIcon={<Plus className="h-4 w-4" weight="bold" />}>
+                    New invoice
+                  </Button>
+                </Link>
+              }
+            />
+          ) : (
+            <motion.div
+              className="overflow-x-auto"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2, ease: [0.32, 0.72, 0, 1] }}
+            >
+              <InvoiceTable invoices={invoices} showClient clientName={clientName} />
+            </motion.div>
+          )}
+        </div>
+      </motion.div>
     </div>
   );
 }

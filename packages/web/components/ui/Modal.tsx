@@ -2,7 +2,18 @@
 
 import { clsx } from 'clsx';
 import { useEffect, type ReactNode } from 'react';
-import { X } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { createPortal } from 'react-dom';
+import { X } from '@phosphor-icons/react';
+
+type Size = 'sm' | 'md' | 'lg' | 'xl';
+
+const sizes: Record<Size, string> = {
+  sm: 'max-w-sm',
+  md: 'max-w-lg',
+  lg: 'max-w-2xl',
+  xl: 'max-w-4xl',
+};
 
 export function Modal({
   open,
@@ -10,12 +21,14 @@ export function Modal({
   title,
   children,
   footer,
+  size = 'md',
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   children: ReactNode;
   footer?: ReactNode;
+  size?: Size;
 }) {
   useEffect(() => {
     if (!open) return;
@@ -31,42 +44,62 @@ export function Modal({
     };
   }, [open, onClose]);
 
-  if (!open) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div
-        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm dark:bg-black/60"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        className={clsx(
-          'relative z-10 w-full max-w-lg rounded-2xl border border-surface-border bg-surface-bg shadow-xl',
-          'animate-scale-in',
-        )}
-      >
-        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4 dark:border-surface-border">
-          <h2 className="text-base font-semibold text-slate-900 dark:text-surface-fg">{title}</h2>
-          <button
-            type="button"
+  const modalContent = (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          <motion.div
+            className="absolute inset-0 glass-overlay"
             onClick={onClose}
-            aria-label="Close"
-            className="cursor-pointer rounded-lg p-1 text-slate-400 transition-colors duration-200 hover:bg-slate-100 hover:text-slate-600 dark:text-slate-500 dark:hover:bg-surface-muted dark:hover:text-slate-300"
+            aria-hidden="true"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          />
+          <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modal-title"
+            className={clsx(
+              'relative z-10 w-full rounded-[var(--radius-outer)] border border-[var(--color-border)] bg-[rgb(var(--surface-card))] shadow-[var(--shadow-glass)] overflow-hidden',
+              sizes[size],
+            )}
+            initial={{ opacity: 0, scale: 0.96, y: 16 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: 16 }}
+            transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
           >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-        <div className="px-5 py-4">{children}</div>
-        {footer ? (
-          <div className="flex justify-end gap-2 border-t border-slate-100 px-5 py-4 dark:border-surface-border">
-            {footer}
-          </div>
-        ) : null}
-      </div>
-    </div>
+            <div className="flex items-center justify-between border-b border-[var(--color-border)] px-6 py-4">
+              <h2 id="modal-title" className="text-lg font-semibold text-[var(--color-fg)]">
+                {title}
+              </h2>
+              <motion.button
+                onClick={onClose}
+                className="rounded-lg p-1 text-[var(--color-border-strong)] hover:bg-[var(--color-muted)] transition-colors"
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                aria-label="Close modal"
+              >
+                <X className="h-5 w-5" weight="regular" />
+              </motion.button>
+            </div>
+            <div className="p-6">{children}</div>
+            {footer && (
+              <div className="flex items-center justify-end gap-3 border-t border-[var(--color-border)] px-6 py-4">
+                {footer}
+              </div>
+            )}
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
+
+  return createPortal(modalContent, document.body);
 }
