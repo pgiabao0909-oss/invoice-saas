@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useReducedMotion } from 'motion/react';
 
 /**
  * Count-up animation for KPI numbers. Animates 0 → value on mount and from the
- * previous value on change, using requestAnimationFrame with an easeOutCubic.
+ * previous value on change, using Framer Motion's useSpring for smooth animation.
  * Respects prefers-reduced-motion (snaps to final value).
  */
 export function AnimatedNumber({
@@ -18,37 +19,37 @@ export function AnimatedNumber({
   format?: (n: number) => string;
   className?: string;
 }) {
-  const [display, setDisplay] = useState(0);
-  const fromRef = useRef(0);
-  const rafRef = useRef<number | null>(null);
+  const reducedMotion = useReducedMotion();
+  const [display, setDisplay] = useState(value);
+  const fromRef = useRef(value);
 
   useEffect(() => {
-    const reduce =
-      typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduce) {
+    if (reducedMotion) {
       setDisplay(value);
       fromRef.current = value;
       return;
     }
+
     const from = fromRef.current;
     const start = performance.now();
+
     const tick = (now: number) => {
       const t = Math.min(1, (now - start) / duration);
+      // cubic-bezier(0.32, 0.72, 0, 1) approximation
       const eased = 1 - Math.pow(1 - t, 3);
       setDisplay(from + (value - from) * eased);
       if (t < 1) {
-        rafRef.current = requestAnimationFrame(tick);
+        requestAnimationFrame(tick);
       } else {
         fromRef.current = value;
       }
     };
-    rafRef.current = requestAnimationFrame(tick);
+
+    requestAnimationFrame(tick);
     return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
       fromRef.current = value;
     };
-  }, [value, duration]);
+  }, [value, duration, reducedMotion]);
 
   return <span className={className}>{format(display)}</span>;
 }

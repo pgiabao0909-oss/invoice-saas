@@ -1,31 +1,59 @@
 import { clsx } from 'clsx';
-import type { HTMLAttributes } from 'react';
+import type { HTMLAttributes, ReactNode } from 'react';
 
-export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
+interface CardProps extends HTMLAttributes<HTMLDivElement> {
+  variant?: 'default' | 'bezel' | 'editorial';
+  children: ReactNode;
+}
+
+export function Card({
+  variant = 'bezel',
+  className,
+  children,
+  ...props
+}: CardProps) {
+  const variants = {
+    default: 'rounded-2xl border border-[var(--color-border)] bg-[rgb(var(--surface-card))] shadow-bezel transition-all duration-300 ease-taste hover:-translate-y-0.5 hover:shadow-lift',
+    bezel: 'rounded-[var(--radius-outer)] border border-[var(--color-border)] bg-[rgb(var(--surface-card))] shadow-bezel transition-all duration-300 ease-taste hover:-translate-y-0.5 hover:shadow-lift',
+    editorial: 'rounded-xl border border-cream-200 bg-cream-100 shadow-bezel transition-all duration-300 ease-taste hover:-translate-y-0.5 hover:shadow-lift dark:border-cream-800 dark:bg-cream-900/50',
+  };
+
   return (
     <div
-      className={clsx(
-        'rounded-2xl border border-surface-border bg-surface-bg shadow-card transition duration-300 ease-soft',
-        'hover:-translate-y-0.5 hover:shadow-card-hover',
-        className,
-      )}
+      className={clsx(variants[variant], className)}
       {...props}
-    />
+    >
+      {children}
+    </div>
   );
 }
 
-export function CardBody({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={clsx('p-5', className)} {...props} />;
+interface CardBodyProps extends HTMLAttributes<HTMLDivElement> {
+  children: ReactNode;
 }
 
-export function CardHeader({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
+export function CardBody({ className, children, ...props }: CardBodyProps) {
+  return (
+    <div className={clsx('p-6', className)} {...props}>
+      {children}
+    </div>
+  );
+}
+
+interface CardHeaderProps extends HTMLAttributes<HTMLDivElement> {
+  children: ReactNode;
+}
+
+export function CardHeader({ className, children, ...props }: CardHeaderProps) {
   return (
     <div
       className={clsx(
-        'flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4 dark:border-surface-border',
+        'flex items-center justify-between gap-3 border-b border-[var(--color-border)] px-6 py-4 dark:border-[var(--color-border)]',
         className,
       )}
       {...props}
-    />
+    >
+      {children}
+    </div>
   );
 }

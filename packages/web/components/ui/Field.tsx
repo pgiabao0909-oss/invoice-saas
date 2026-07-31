@@ -1,8 +1,12 @@
 import { clsx } from 'clsx';
 import type { InputHTMLAttributes, TextareaHTMLAttributes, ReactNode } from 'react';
 
-const controlBase =
-  'w-full rounded-xl border border-surface-border bg-surface-bg px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-200 ease-soft focus:border-cta-600 focus:outline-none focus:ring-2 focus:ring-cta-600/30 dark:text-surface-fg';
+const controlBase = clsx(
+  'w-full rounded-xl border border-[var(--color-border)] bg-[rgb(var(--surface-card))] px-4 py-3 text-sm text-[var(--color-fg)] placeholder:text-[var(--color-border-strong)]',
+  'transition-all duration-200 ease-taste',
+  'focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)] focus:border-transparent',
+  'disabled:opacity-50 disabled:cursor-not-allowed',
+);
 
 export function Label({
   children,
@@ -16,7 +20,7 @@ export function Label({
   return (
     <label
       htmlFor={htmlFor}
-      className={clsx('mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300', className)}
+      className={clsx('mb-2 block text-sm font-medium text-[var(--color-fg)]', className)}
     >
       {children}
     </label>
@@ -24,32 +28,38 @@ export function Label({
 }
 
 export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
-  return <input className={clsx(controlBase, className)} {...props} />;
+  return (
+    <input
+      className={clsx(controlBase, className)}
+      {...props}
+    />
+  );
 }
 
 export function Textarea({ className, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return <textarea className={clsx(controlBase, 'min-h-[80px]', className)} {...props} />;
+  return (
+    <textarea
+      className={clsx(controlBase, 'min-h-[100px] resize-y', className)}
+      {...props}
+    />
+  );
 }
 
-/** Numeric input rendered in minor units with a currency prefix; shows major-unit value. */
-export function MoneyInput({
-  valueMinor,
-  onChangeMinor,
-  currency,
-  className,
-}: {
+interface MoneyInputProps {
   valueMinor: number;
   onChangeMinor: (minor: number) => void;
   currency: string;
   className?: string;
-}) {
-  const major = (valueMinor / 100).toString();
+}
+
+export function MoneyInput({ valueMinor, onChangeMinor, currency, className }: MoneyInputProps) {
+  const major = (valueMinor / 100).toFixed(2);
   return (
     <div className={clsx('relative', className)}>
-      <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-400 dark:text-slate-500">
+      <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm font-medium text-[var(--color-border-strong)]">
         {currency}
       </span>
-      <input
+      <Input
         type="number"
         step="0.01"
         min="0"
@@ -65,22 +75,26 @@ export function MoneyInput({
   );
 }
 
-export function Field({
-  label,
-  htmlFor,
-  children,
-  hint,
-}: {
+interface FieldProps {
   label: string;
   htmlFor?: string;
   children: ReactNode;
   hint?: string;
-}) {
+  error?: string;
+}
+
+export function Field({ label, htmlFor, children, hint, error }: FieldProps) {
   return (
     <div>
       <Label htmlFor={htmlFor}>{label}</Label>
       {children}
-      {hint ? <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">{hint}</p> : null}
+      {error ? (
+        <p className="mt-1.5 text-sm text-pastel-red-600 dark:text-pastel-red-400" role="alert">
+          {error}
+        </p>
+      ) : hint ? (
+        <p className="mt-1.5 text-sm text-[var(--color-border-strong)]">{hint}</p>
+      ) : null}
     </div>
   );
 }

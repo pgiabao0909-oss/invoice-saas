@@ -4,6 +4,7 @@ import Link from 'next/link';
 import type { Invoice } from '@invoice-saas/contracts';
 import { InvoiceStatusBadge } from './ui/Badge';
 import { formatDate, formatMoney } from '@/lib/format';
+import { motion } from 'motion/react';
 
 export function InvoiceTable({
   invoices,
@@ -15,46 +16,58 @@ export function InvoiceTable({
   clientName?: (id: string) => string;
 }) {
   if (invoices.length === 0) return null;
+
   return (
-    <div className="overflow-hidden rounded-2xl border border-surface-border bg-surface-bg shadow-card">
+    <motion.div
+      className="overflow-hidden rounded-[var(--radius-outer)] border border-[var(--color-border)] bg-[rgb(var(--surface-card))]"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: [0.32, 0.72, 0, 1] }}
+    >
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-400 dark:border-surface-border dark:text-slate-500">
-            <th className="px-5 py-3 font-medium">Invoice</th>
-            {showClient ? <th className="px-5 py-3 font-medium">Client</th> : null}
-            <th className="px-5 py-3 font-medium">Status</th>
-            <th className="px-5 py-3 font-medium">Due</th>
-            <th className="px-5 py-3 text-right font-medium">Total</th>
+          <tr className="border-b border-[var(--color-border)] text-left text-caption text-[var(--color-border-strong)]">
+            <th className="px-6 py-4 font-medium text-[var(--color-fg)]">Invoice</th>
+            {showClient ? <th className="px-6 py-4 font-medium text-[var(--color-fg)]">Client</th> : null}
+            <th className="px-6 py-4 font-medium text-[var(--color-fg)]">Status</th>
+            <th className="px-6 py-4 font-medium text-[var(--color-fg)]">Due</th>
+            <th className="px-6 py-4 text-right font-medium text-[var(--color-fg)]">Total</th>
           </tr>
         </thead>
-        <tbody className="stagger divide-y divide-slate-50 dark:divide-surface-border">
-          {invoices.map((inv) => (
-            <tr key={inv.id} className="hover:bg-slate-50/60 dark:hover:bg-surface-muted/60">
-              <td className="px-5 py-3">
+        <tbody className="divide-y divide-[var(--color-border)]">
+          {invoices.map((inv, index) => (
+            <motion.tr
+              key={inv.id}
+              className="hover:bg-[var(--color-muted)]/50 transition-colors"
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.4, delay: index * 0.05, ease: [0.32, 0.72, 0, 1] }}
+            >
+              <td className="px-6 py-4">
                 <Link
                   href={`/invoices/${inv.id}`}
-                  className="font-medium text-slate-900 hover:text-brand-600 dark:text-surface-fg dark:hover:text-brand-300"
+                  className="font-medium text-[var(--color-fg)] hover:text-[var(--color-fg)]/70 transition-colors"
                 >
                   {inv.invoiceNumber}
                 </Link>
-                <div className="text-xs text-slate-400 dark:text-slate-500">{inv.currency}</div>
+                <div className="mt-0.5 text-body-sm text-[var(--color-border-strong)] nums">{inv.currency}</div>
               </td>
               {showClient ? (
-                <td className="px-5 py-3 text-slate-600 dark:text-slate-400">
+                <td className="px-6 py-4 text-[var(--color-border-strong)]">
                   {clientName?.(inv.clientId) ?? inv.clientId}
                 </td>
               ) : null}
-              <td className="px-5 py-3">
+              <td className="px-6 py-4">
                 <InvoiceStatusBadge status={inv.status} />
               </td>
-              <td className="px-5 py-3 text-slate-500 dark:text-slate-400">{formatDate(inv.dueDate)}</td>
-              <td className="px-5 py-3 text-right nums text-slate-900 dark:text-surface-fg">
+              <td className="px-6 py-4 text-[var(--color-border-strong)] nums">{formatDate(inv.dueDate)}</td>
+              <td className="px-6 py-4 text-right nums text-[var(--color-fg)] font-semibold">
                 {formatMoney(inv.totals.totalMinor, inv.currency)}
               </td>
-            </tr>
+            </motion.tr>
           ))}
         </tbody>
       </table>
-    </div>
+    </motion.div>
   );
 }

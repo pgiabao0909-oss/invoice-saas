@@ -1,8 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { motion } from 'motion/react';
+import { Building, ArrowRight } from '@phosphor-icons/react';
 import { api, setTenantSlug } from '@/lib/api';
-import { Card } from './ui/Card';
+import { Card, CardBody } from './ui/Card';
 import { Button } from './ui/Button';
 import { Input, Field } from './ui/Field';
 import { useTenant } from './TenantProvider';
@@ -42,55 +44,113 @@ export function Onboarding() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-brand-600 p-6">
-      <Card className="w-full max-w-md">
-        <div className="p-6">
-          <div className="text-sm font-medium text-brand-600 dark:text-brand-300">Get started</div>
-          <h1 className="text-xl font-semibold text-slate-900 dark:text-surface-fg">Create your workspace</h1>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Workspaces keep invoices, clients, and branding isolated per tenant.
-          </p>
-
-          {tenants.length > 0 ? (
-            <div className="mt-5">
-              <p className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">
-                Or sign in to an existing workspace
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {tenants.map((t) => (
-                  <Button key={t.id} variant="secondary" size="sm" onClick={() => pick(t.slug)}>
-                    {t.branding?.displayName ?? t.name}
-                  </Button>
-                ))}
+    <motion.div
+      className="flex min-h-[100dvh] items-center justify-center bg-gradient-to-br from-stone-100 via-stone-50 to-stone-100 p-6 dark:from-darkStone-950 dark:via-darkStone-900 dark:to-darkStone-950"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.6, ease: [0.32, 0.72, 0, 1] }}
+    >
+      <motion.div
+        className="w-full max-w-md"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.1, ease: [0.32, 0.72, 0, 1] }}
+      >
+        <Card variant="bezel">
+          <CardBody className="p-8 space-y-8">
+            {/* Header */}
+            <motion.div
+              className="text-center"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2, ease: [0.32, 0.72, 0, 1] }}
+            >
+              <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-[var(--radius-inner)] bg-gradient-to-br from-stone-700 to-stone-900 text-white">
+                <Building className="h-7 w-7" weight="bold" />
               </div>
-              <div className="my-5 border-t border-slate-100 dark:border-surface-border" />
-            </div>
-          ) : null}
+              <h1 className="text-display-sm font-heading tracking-tight text-[var(--color-fg)]">Create your workspace</h1>
+              <p className="mt-2 text-body text-[var(--color-border-strong)]">
+                Workspaces keep invoices, clients, and branding isolated per tenant.
+              </p>
+            </motion.div>
 
-          <form onSubmit={create} className="space-y-3">
-            <Field label="Workspace name">
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Acme Inc."
-                required
-              />
-            </Field>
-            <Field label="Slug" hint="Used by the API as the x-tenant-slug header.">
-              <Input
-                value={slug}
-                onChange={(e) => setSlug(slugify(e.target.value))}
-                placeholder={slugify(name) || 'acme'}
-                required
-              />
-            </Field>
-            {error ? <p className="text-sm text-danger">{error}</p> : null}
-            <Button type="submit" disabled={busy || !name} className="w-full">
-              {busy ? 'Creating…' : 'Create workspace'}
-            </Button>
-          </form>
-        </div>
-      </Card>
-    </div>
+            {/* Existing tenants */}
+            {tenants.length > 0 && (
+              <motion.div
+                className="rounded-xl border border-[var(--color-border)] p-4"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.3, ease: [0.32, 0.72, 0, 1] }}
+              >
+                <p className="mb-3 text-caption text-[var(--color-border-strong)]">Or switch to existing workspace</p>
+                <div className="flex flex-wrap gap-2">
+                  {tenants.map((t) => (
+                    <motion.button
+                      key={t.id}
+                      type="button"
+                      onClick={() => pick(t.slug)}
+                      className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-[var(--color-fg)] bg-[var(--color-muted)] hover:bg-[var(--color-border)] transition-colors"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      {t.branding?.displayName ?? t.name}
+                    </motion.button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
+            {/* Create form */}
+            <motion.form
+              onSubmit={create}
+              className="space-y-5"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: tenants.length > 0 ? 0.4 : 0.2, ease: [0.32, 0.72, 0, 1] }}
+            >
+              <Field label="Workspace name">
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Acme Inc."
+                  required
+                  autoFocus
+                />
+              </Field>
+              <Field label="Slug" hint="Used by the API as the x-tenant-slug header.">
+                <Input
+                  value={slug}
+                  onChange={(e) => setSlug(slugify(e.target.value))}
+                  placeholder={slugify(name) || 'acme'}
+                  required
+                />
+              </Field>
+              {error && (
+                <motion.p
+                  className="text-body text-pastel-red-600 dark:text-pastel-red-400"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  role="alert"
+                >
+                  {error}
+                </motion.p>
+              )}
+              <Button type="submit" disabled={busy || !name} className="w-full" size="lg" trailingIcon={<ArrowRight className="h-4 w-4" weight="bold" />}>
+                {busy ? 'Creating…' : 'Create workspace'}
+              </Button>
+            </motion.form>
+          </CardBody>
+        </Card>
+
+        <motion.p
+          className="mt-6 text-center text-caption text-[var(--color-border-strong)]"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+        >
+          Invoice SaaS — Automated invoicing at scale
+        </motion.p>
+      </motion.div>
+    </motion.div>
   );
 }
