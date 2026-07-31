@@ -2,15 +2,17 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { motion } from 'motion/react';
 import {
-  AlertTriangle,
-  ArrowUpRight,
-  CheckCircle2,
   FileText,
-  Send,
-  Sparkles,
+  PaperPlane,
+  Check,
+  Warning,
+  ArrowRight,
+  Sparkle,
   Wallet,
-} from 'lucide-react';
+  CircleDashed,
+} from '@phosphor-icons/react';
 import { useTenant } from '@/components/TenantProvider';
 import { api } from '@/lib/api';
 import type { Client, DashboardStats, Invoice } from '@invoice-saas/contracts';
@@ -23,52 +25,94 @@ import { Spinner } from '@/components/ui/Spinner';
 import { Modal } from '@/components/ui/Modal';
 import { Input, Field } from '@/components/ui/Field';
 import { formatMoney } from '@/lib/format';
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 
-const DONUT = [
-  { key: 'draft', color: '#94a3b8' },
-  { key: 'sent', color: '#6366f1' },
-  { key: 'paid', color: '#059669' },
-  { key: 'overdue', color: '#e11d48' },
+const STATUS_CONFIG = [
+  { key: 'draft' as const, label: 'Draft', icon: FileText, color: 'stone', badge: 'blue' },
+  { key: 'sent' as const, label: 'Sent', icon: PaperPlane, color: 'stone', badge: 'blue' },
+  { key: 'paid' as const, label: 'Paid', icon: Check, color: 'stone', badge: 'green' },
+  { key: 'overdue' as const, label: 'Overdue', icon: Warning, color: 'stone', badge: 'yellow' },
 ] as const;
 
-function StatusDonut({ stats }: { stats: DashboardStats }) {
+function StatusHealth({ stats }: { stats: DashboardStats }) {
   const total = stats.draft + stats.sent + stats.paid + stats.overdue || 1;
-  const r = 42;
-  const circ = 2 * Math.PI * r;
-  let offset = 0;
+
   return (
-    <div className="relative flex items-center justify-center">
-      <svg viewBox="0 0 100 100" className="h-44 w-44 -rotate-90">
-        <circle cx="50" cy="50" r={r} fill="none" stroke="rgb(var(--surface-border))" strokeWidth="11" />
-        {DONUT.map((s) => {
-          const value = stats[s.key];
-          const len = (value / total) * circ;
-          const el = (
-            <circle
-              key={s.key}
-              cx="50"
-              cy="50"
-              r={r}
-              fill="none"
-              stroke={s.color}
-              strokeWidth="11"
-              strokeDasharray={`${len} ${circ - len}`}
-              strokeDashoffset={-offset}
-              strokeLinecap="round"
-              className="transition-[stroke-dasharray] duration-700 ease-soft"
-            />
-          );
-          offset += len;
-          return el;
-        })}
-      </svg>
-      <div className="absolute flex flex-col items-center">
-        <span className="text-3xl font-bold tracking-tight text-slate-900 nums dark:text-surface-fg">
-          {total}
-        </span>
-        <span className="text-xs text-slate-400 dark:text-slate-500">invoices</span>
+    <motion.div
+      className="rounded-[var(--radius-outer)] border border-[var(--color-border)] bg-[rgb(var(--surface-card))] p-6 shadow-bezel"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, ease: [0.32, 0.72, 0, 1] }}
+    >
+      <div className="mb-4">
+        <h2 className="text-heading-sm text-[var(--color-fg)]">Invoice health</h2>
+        <p className="mt-1 text-body-sm text-[var(--color-border-strong)]">Live breakdown by status</p>
       </div>
-    </div>
+
+      <div className="flex flex-col items-center gap-6">
+        {/* Editorial donut */}
+        <div className="relative flex items-center justify-center" style={{ width: 180, height: 180 }}>
+          <svg viewBox="0 0 180 180" className="w-full h-full -rotate-90">
+            <circle
+              cx="90"
+              cy="90"
+              r="72"
+              fill="none"
+              stroke="var(--color-border)"
+              strokeWidth="12"
+            />
+            {STATUS_CONFIG.map((s, i) => {
+              const value = stats[s.key];
+              const len = (value / total) * 2 * Math.PI * 72;
+              const prev = STATUS_CONFIG.slice(0, i).reduce((sum, st) => sum + stats[st.key], 0);
+              const offset = (prev / total) * 2 * Math.PI * 72;
+              return (
+                <motion.circle
+                  key={s.key}
+                  cx="90"
+                  cy="90"
+                  r="72"
+                  fill="none"
+                  stroke={`var(--pastel-${s.badge}-500)`}
+                  strokeWidth="12"
+                  strokeDasharray={`${len} ${2 * Math.PI * 72 - len}`}
+                  strokeDashoffset={-offset}
+                  strokeLinecap="round"
+                  initial={{ strokeDasharray: `0 ${2 * Math.PI * 72}`, strokeDashoffset: 0 }}
+                  animate={{ strokeDasharray: `${len} ${2 * Math.PI * 72 - len}`, strokeDashoffset: -offset }}
+                  transition={{ duration: 0.8, delay: i * 0.1, ease: [0.32, 0.72, 0, 1] }}
+                />
+              );
+            })}
+          </svg>
+          <div className="absolute flex flex-col items-center">
+            <AnimatedNumber value={total} format={(n) => n.toLocaleString()} className="text-display-sm text-[var(--color-fg)]" />
+            <span className="text-body-sm text-[var(--color-border-strong)]">invoices</span>
+          </div>
+        </div>
+
+        <div className="grid w-full grid-cols-4 gap-4 text-center">
+          {STATUS_CONFIG.map((s) => (
+            <motion.div
+              key={s.key}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.3 + STATUS_CONFIG.indexOf(s) * 0.08, ease: [0.32, 0.72, 0, 1] }}
+            >
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <span className={`h-2.5 w-2.5 rounded-full bg-pastel-${s.badge}-500`} />
+                <span className="capitalize text-body-sm text-[var(--color-border-strong)]">{s.label}</span>
+              </div>
+              <AnimatedNumber
+                value={stats[s.key]}
+                format={(n) => n.toLocaleString()}
+                className="text-heading-md nums text-[var(--color-fg)]"
+              />
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </motion.div>
   );
 }
 
@@ -131,32 +175,35 @@ export default function DashboardPage() {
         description="Your invoicing at a glance."
       />
 
-      <div className="stagger grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+      {/* Asymmetrical Bento KPI Grid */}
+      <div className="stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <KpiCard
           label="Draft"
           value={stats?.draft ?? 0}
           href="/invoices?status=draft"
-          icon={<FileText className="h-5 w-5" />}
+          icon={<FileText className="h-5 w-5" weight="bold" />}
+          accent="default"
         />
         <KpiCard
           label="Sent"
           value={stats?.sent ?? 0}
           href="/invoices?status=sent"
-          icon={<Send className="h-5 w-5" />}
+          icon={<PaperPlane className="h-5 w-5" weight="bold" />}
+          accent="default"
         />
         <KpiCard
           label="Paid"
           value={stats?.paid ?? 0}
-          accent="emerald"
           href="/invoices?status=paid"
-          icon={<CheckCircle2 className="h-5 w-5" />}
+          icon={<Check className="h-5 w-5" weight="bold" />}
+          accent="success"
         />
         <KpiCard
           label="Overdue"
           value={stats?.overdue ?? 0}
-          accent="danger"
           href="/invoices?status=overdue"
-          icon={<AlertTriangle className="h-5 w-5" />}
+          icon={<Warning className="h-5 w-5" weight="bold" />}
+          accent="danger"
           action={
             <Button size="sm" variant="ghost" onClick={() => setShowSweep(true)} disabled={sweeping}>
               {sweeping ? 'Running…' : 'Run sweep'}
@@ -166,21 +213,21 @@ export default function DashboardPage() {
         <KpiCard
           label="Outstanding"
           value={stats ? formatMoney(stats.outstandingMinor, currency) : '—'}
-          accent="cta"
           href="/invoices"
-          icon={<Wallet className="h-5 w-5" />}
+          icon={<Wallet className="h-5 w-5" weight="bold" />}
+          accent="cta"
         />
       </div>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Recent invoices</h2>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-heading-sm text-[var(--color-fg)]">Recent invoices</h2>
             <Link
               href="/invoices"
-              className="inline-flex items-center gap-1 text-sm font-medium text-cta-600 transition-colors hover:text-cta-700 dark:text-cta-300 dark:hover:text-cta-200"
+              className="inline-flex items-center gap-1 text-body text-[var(--color-border-strong)] hover:text-[var(--color-fg)] transition-colors"
             >
-              View all <ArrowUpRight className="h-4 w-4" />
+              View all <ArrowRight className="h-4 w-4" weight="regular" />
             </Link>
           </div>
           {loading ? (
@@ -191,7 +238,6 @@ export default function DashboardPage() {
             <EmptyState
               title="No invoices yet"
               description="Create your first invoice to see it here."
-              icon={<Sparkles className="h-6 w-6" />}
               action={
                 <Link href="/invoices/new">
                   <Button size="sm">New invoice</Button>
@@ -203,36 +249,18 @@ export default function DashboardPage() {
           )}
         </div>
 
-        <div className="rounded-2xl border border-surface-border bg-surface-bg p-5 shadow-card">
-          <h2 className="mb-1 text-sm font-semibold text-slate-700 dark:text-slate-300">Invoice health</h2>
-          <p className="mb-3 text-xs text-slate-400 dark:text-slate-500">Live breakdown by status</p>
-          {stats ? (
-            <div className="flex flex-col items-center">
-              <StatusDonut stats={stats} />
-              <div className="mt-3 grid w-full grid-cols-2 gap-2 text-xs">
-                {DONUT.map((s) => (
-                  <div key={s.key} className="flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-full" style={{ background: s.color }} />
-                    <span className="capitalize text-slate-500 dark:text-slate-400">{s.key}</span>
-                    <span className="ml-auto nums font-semibold text-slate-700 dark:text-slate-200">
-                      {stats[s.key]}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="py-10 text-center">
-              <Spinner className="h-5 w-5" />
-            </div>
-          )}
-        </div>
+        <StatusHealth stats={stats!} />
       </div>
 
       {sweepMsg ? (
-        <p className="mt-4 rounded-xl bg-cta-50 px-4 py-2.5 text-sm text-cta-700 dark:bg-cta-900/30 dark:text-cta-200">
+        <motion.p
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-6 rounded-xl bg-stone-100 px-4 py-3 text-body text-stone-700 dark:bg-darkStone-800 dark:text-stone-200"
+          role="status"
+        >
           {sweepMsg}
-        </p>
+        </motion.p>
       ) : null}
 
       <Modal
@@ -245,8 +273,8 @@ export default function DashboardPage() {
           </Button>
         }
       >
-        <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">
-          This flips past-due sent invoices to <span className="font-medium text-slate-700 dark:text-slate-200">overdue</span> and queues reminder emails. Needs your admin token.
+        <p className="mb-4 text-body text-[var(--color-border-strong)]">
+          This flips past-due sent invoices to <span className="font-semibold text-[var(--color-fg)]">overdue</span> and queues reminder emails. Needs your admin token.
         </p>
         <Field label="Admin token (ADMIN_API_TOKEN)">
           <Input
