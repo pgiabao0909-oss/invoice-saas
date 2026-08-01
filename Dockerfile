@@ -20,7 +20,7 @@ RUN apt-get update -y \
 COPY package.json package-lock.json tsconfig.base.json ./
 COPY packages ./packages
 
-RUN npm ci
+RUN npm ci --allow-scripts
 
 # Generate the Prisma client and build every workspace (api/worker tsc + web next build).
 RUN npm run prisma:generate
